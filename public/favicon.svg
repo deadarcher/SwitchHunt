@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
+  <!-- RFFLogoMarkOnFill — double-chevron mark on a violet rounded square. Trailing
+       chevron at 60% opacity gives the "motion" feel of the brand. Kept identical to
+       platform/src/RFF.Web/public/favicon.svg so the platform tab and the marketing
+       tab read as one product when both are open in a tab strip. Source of truth for
+       the mark itself: rff (platform repo) → src/components/Brand.tsx. -->
+  <rect width="32" height="32" rx="6" fill="#7C5CFF"/>
+  <path d="M 8 24 L 16 8" stroke="white" stroke-width="4" stroke-linecap="round"/>
+  <path d="M 16 24 L 24 8" stroke="white" stroke-width="4" stroke-linecap="round" opacity="0.6"/>
+</svg>

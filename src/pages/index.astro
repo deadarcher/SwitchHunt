@@ -1,0 +1,1413 @@
+---
+import Layout from '../layouts/Layout.astro';
+import Logo from '../components/Logo.astro';
+
+const title = 'SwitchHunt — find any Windows installer’s silent-install switch';
+const description =
+  'Drop a Windows installer (MSI/EXE) and get its silent-install command. Detects MSI, Inno Setup, ' +
+  'NSIS, WiX Burn, InstallShield and SFX. Runs entirely in your browser — nothing is uploaded. Free.';
+---
+
+<Layout title={title} description={description}>
+  <!-- Minimal header (no marketing nav) — keeps this tool page reading as a free standalone tool,
+       not a product landing page. The "Built by RFF" byline at the bottom carries the funnel. -->
+  <header class="tool-nav">
+    <a href="https://getrff.com" aria-label="RFF home"><Logo /></a>
+    <a href="https://getrff.com" class="tool-nav-by">What’s RFF? →</a>
+  </header>
+
+  <main class="wrap">
+    <p class="kicker">FREE TOOL</p>
+    <h1>SwitchHunt</h1>
+    <p class="sub">
+      <strong>What’s the silent install switch?</strong> Drop a Windows installer below — we read it <strong>in your browser</strong>, the file never
+      leaves your machine — identify the engine, and hand you the full command set: install, repair,
+      uninstall, extract, plus the modifier flags. Works on ~85% of installers — MSI, WiX Burn, Advanced
+      Installer, Inno, NSIS, InstallShield, InstallAware, BitRock, MSIX/AppX, Squirrel, Wise and
+      self-extractors — and a curated catalog for the painful vendor one-offs (Citrix, Teams, AnyDesk…).
+      The packed/custom long tail gets a best-effort switch harvest.
+    </p>
+
+    <!-- Dropzone -->
+    <label id="drop" class="drop" for="file" tabindex="0">
+      <input id="file" type="file" hidden accept=".exe,.msi,.msp,application/x-msdownload,application/x-msi" />
+      <div class="drop-inner">
+        <div class="drop-icon">⬇</div>
+        <div class="drop-title">Drop an installer here, or click to choose</div>
+        <div class="drop-hint">.exe or .msi · read locally, never uploaded</div>
+      </div>
+    </label>
+
+    <p id="status" class="status" hidden></p>
+
+    <!-- Result -->
+    <section id="result" class="result" hidden>
+      <header class="result-head">
+        <div>
+          <div class="result-engine" id="r-engine">—</div>
+          <div class="result-file" id="r-file"></div>
+        </div>
+        <span class="badge" id="r-confidence">—</span>
+      </header>
+
+      <!-- Known silent string from the curated catalog (hard-coded, NOT read from the file) -->
+      <div id="r-catalog" class="catalog" hidden></div>
+
+      <!-- CMD ⇄ PowerShell: rewrites the command blocks for the chosen shell -->
+      <div class="shell-toggle" id="r-shell" role="group" aria-label="Shell" hidden>
+        <button type="button" class="shell-btn is-active" data-shell="cmd">CMD</button>
+        <button type="button" class="shell-btn" data-shell="pwsh">PowerShell</button>
+      </div>
+
+      <div id="r-commands"></div>
+
+      <p class="shell-hint" id="r-shell-hint" hidden>
+        PowerShell: current-folder executables get <code>.\</code> and quoted paths get the
+        <code>&amp;</code> call operator (applied above). If an argument itself contains quotes
+        (e.g. InstallShield <code>/v"/qn"</code>) or a path with spaces, add <code>--%</code> right
+        after the program name so PowerShell passes the rest verbatim.
+      </p>
+
+      <!-- Command builder (skeleton; options + props are populated/seeded per engine in the script) -->
+      <div id="r-builder" class="builder" hidden>
+        <div class="lbl">Build a command</div>
+        <div class="builder-grid">
+          <div class="b-row" data-ctl="op"><span class="b-label">Operation</span><div class="seg" id="b-op"></div></div>
+          <div class="b-row" data-ctl="ui"><span class="b-label">UI level</span><div class="seg" id="b-ui"></div></div>
+          <div class="b-row" data-ctl="dir"><span class="b-label" id="b-dir-label">Install dir</span><input class="b-input" id="b-dir" type="text" autocomplete="off" spellcheck="false" /></div>
+          <div class="b-row" data-ctl="norestart"><span class="b-label"></span><label class="b-check"><input type="checkbox" id="b-norestart" checked /> No restart</label></div>
+          <div class="b-row" data-ctl="log"><span class="b-label"></span><label class="b-check"><input type="checkbox" id="b-log" /> Log to file</label><input class="b-input b-input-sm" id="b-logpath" type="text" autocomplete="off" spellcheck="false" /></div>
+          <div class="b-row" data-ctl="noupdates" hidden><span class="b-label"></span><label class="b-check"><input type="checkbox" id="b-noupdates" /> Skip update check <code>/exenoupdates</code></label></div>
+          <div class="b-row" data-ctl="noprereqs" hidden><span class="b-label"></span><label class="b-check"><input type="checkbox" id="b-noprereqs" /> Skip prerequisites <code>/noprereqs</code></label></div>
+          <div class="b-row" data-ctl="props" id="b-props-wrap" hidden><span class="b-label">Properties</span><div class="b-props" id="b-props"></div></div>
+        </div>
+        <div class="lbl">Result</div>
+        <div class="cmd"><code id="b-out"></code><button type="button" class="copy" id="b-copy">Copy</button></div>
+      </div>
+
+      <!-- Deployment artifacts (generated client-side). .intunewin is the hero path (self-contained,
+           framework-free); the PSADT v4 wrapper is the secondary "if you already live in PSADT" option. -->
+      <div id="r-deploy" hidden>
+        <p class="deploy-warn">⚠ Test the install command in a throwaway VM before you package or deploy it. These switches are detected/curated best-effort — a wrong one silently ships a broken package to every machine.</p>
+        <section class="deploy deploy-primary">
+          <div class="deploy-head">
+            <h3>📦 Build a .intunewin <span class="rec-badge">Recommended</span></h3>
+            <p class="deploy-why">Your installer + the silent command in one Intune-ready package — <strong>nothing else to install</strong>. No PSADT, no framework, no PowerShell-version gotchas. Built in your browser; the file never leaves your machine.</p>
+          </div>
+          <div id="r-intune-body"></div>
+        </section>
+        <details class="deploy deploy-secondary">
+          <summary>📦 PSADT v4 wrapper (.ps1) — only if your shop standardizes on PSADT</summary>
+          <div id="r-psadt-body"></div>
+        </details>
+      </div>
+
+      <div id="r-modifiers-block" hidden>
+        <div class="lbl">Modifiers</div>
+        <p class="modifiers" id="r-modifiers"></p>
+      </div>
+
+      <!-- Custom property names harvested from the binary (Advanced Installer); built dynamically -->
+      <div id="r-custom" hidden></div>
+
+      <p class="notes" id="r-notes"></p>
+
+      <!-- Opt-in best-effort switch harvest for custom/low-confidence installers -->
+      <div id="r-besttry" hidden>
+        <button type="button" class="besttry-btn" id="r-besttry-btn">⚡ Try to extract switches anyway</button>
+        <div id="r-besttry-out"></div>
+      </div>
+
+      <!-- Deep MSI analysis (property matrix + uninstall-replay); built dynamically -->
+      <div id="r-msi" hidden></div>
+
+      <dl class="meta" id="r-meta" hidden></dl>
+    </section>
+
+    <!-- What it detects -->
+    <section class="engines">
+      <h2>What it detects</h2>
+      <p class="engines-sub">
+        Built for the enterprise long tail — Advanced Installer, Citrix and the vendor one-offs whose silent
+        switches you’d otherwise reverse-engineer in Orca or dig out of a forum thread. Drop any of them and
+        you get the exact command (install, repair, uninstall, plus modifier flags). Deterministic engines
+        are rock-solid; the rest come with caveats.
+      </p>
+      <table class="engines-table">
+        <thead><tr><th>Engine</th><th>Silent install</th><th>Confidence</th></tr></thead>
+        <tbody>
+          <tr><td>Windows Installer (MSI)</td><td><code>msiexec /i app.msi /qn /norestart</code></td><td><span class="ec ec-high">High</span></td></tr>
+          <tr><td>WiX Burn bundle</td><td><code>setup.exe /install /quiet /norestart</code></td><td><span class="ec ec-high">High</span></td></tr>
+          <tr><td>Advanced Installer</td><td><code>setup.exe /exenoui /qn</code></td><td><span class="ec ec-high">High</span></td></tr>
+          <tr><td>Inno Setup</td><td><code>setup.exe /VERYSILENT /SUPPRESSMSGBOXES</code></td><td><span class="ec ec-high">High</span></td></tr>
+          <tr><td>MSIX / AppX</td><td><code>Add-AppxPackage -Path app.msix</code></td><td><span class="ec ec-high">High</span></td></tr>
+          <tr><td>NSIS</td><td><code>setup.exe /S</code></td><td><span class="ec ec-med">Medium</span></td></tr>
+          <tr><td>InstallShield</td><td><code>setup.exe /s /v"/qn"</code></td><td><span class="ec ec-med">Medium</span></td></tr>
+          <tr><td>InstallAware</td><td><code>setup.exe /s</code></td><td><span class="ec ec-med">Medium</span></td></tr>
+          <tr><td>BitRock InstallBuilder</td><td><code>setup.exe --mode unattended</code></td><td><span class="ec ec-med">Medium</span></td></tr>
+          <tr><td>Squirrel</td><td><code>Setup.exe --silent</code></td><td><span class="ec ec-med">Medium</span></td></tr>
+          <tr><td>7-Zip / WinRAR SFX</td><td>unwrap → inner installer</td><td><span class="ec ec-med">Medium</span></td></tr>
+          <tr><td>Wise (legacy)</td><td><code>setup.exe /s</code> (case-finicky)</td><td><span class="ec ec-low">Low</span></td></tr>
+          <tr><td>📚 Vendor one-offs (Citrix, Teams, AnyDesk…)</td><td>known silent string from the catalog</td><td><span class="ec ec-high">Curated</span></td></tr>
+          <tr><td>Custom / packed EXE</td><td>best-effort switch harvest</td><td><span class="ec ec-low">—</span></td></tr>
+        </tbody>
+      </table>
+      <p class="engines-foot">
+        MSI packages also get a deep read — the full property table, a tiered “properties you likely need”
+        list, and an uninstall-replay warning. When an installer seals its switches inside a compressed payload
+        (Citrix, custom .NET, big vendor bundles), a curated catalog of hand-verified silent strings fills the
+        gap — and the truly custom EXEs we just can't crack, we say so rather than guess. <strong>That's where
+        you come in:</strong> I built this because I was sick of reverse-engineering installers in Orca, and
+        I've thrown every weird, vendor-cursed package I own at it — you've probably got one nastier. Drop the
+        installer that beats it (or the magic switches we miss) in an
+        <a href="https://github.com/deadarcher/SwitchHunt/issues/new?template=silent-install-string.yml" target="_blank" rel="noopener">issue on the repo</a>
+        — the catalog only gets better with help, and I'm always happy to be proven wrong.
+      </p>
+    </section>
+
+    <!-- Trust + scope -->
+    <section class="info">
+      <div class="info-col">
+        <h2>Runs entirely in your browser</h2>
+        <p>
+          The installer is parsed locally with JavaScript — no upload, no server, no storage, nothing
+          to leak. You can pull your network cable and it still works. Open DevTools and watch: zero
+          requests leave the page.
+        </p>
+      </div>
+      <div class="info-col">
+        <h2>What it can and can’t do</h2>
+        <p>
+          It identifies the installer <em>engine</em> by signature and returns that engine’s documented
+          command set — install, repair, uninstall, layout. It never runs the installer. Deterministic
+          engines (MSI, WiX Burn, Advanced Installer, Inno, MSIX) are rock-solid; NSIS/InstallShield/
+          Squirrel/SFX come with caveats; truly custom EXEs it can’t crack — that’s what the community
+          catalog is for: a public, hand-verified set of known silent strings (and, for well-known apps,
+          their real uninstall + detection), going live at
+          <a href="https://github.com/deadarcher/SwitchHunt" target="_blank" rel="noopener">github.com/deadarcher/SwitchHunt</a>.
+        </p>
+      </div>
+    </section>
+
+    <p class="byline">
+      Built by <a href="/">RFF</a> — the deploy tool for admins who got tired of reverse-engineering
+      installers in Orca. Pushing this to a fleet is the boring part <a href="/">RFF automates</a>.
+    </p>
+  </main>
+</Layout>
+
+<style>
+  .tool-nav {
+    display: flex; justify-content: space-between; align-items: center;
+    max-width: 760px; margin: 0 auto; padding: 22px 24px 0;
+  }
+  .tool-nav-by { font-size: 13px; color: var(--ink-3); transition: color 0.15s; }
+  .tool-nav-by:hover { color: var(--brand); }
+
+  .wrap { max-width: 760px; margin: 0 auto; padding: 40px 24px 88px; }
+  .kicker {
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-size: 11px; letter-spacing: 0.12em; color: var(--brand); margin: 0 0 14px;
+  }
+  h1 {
+    font-size: 40px; font-weight: 800; letter-spacing: -0.025em; line-height: 1.08;
+    color: var(--ink); margin: 0 0 16px; text-wrap: balance;
+  }
+  .sub { font-size: 17px; line-height: 1.6; color: var(--ink-2); margin: 0 0 32px; text-wrap: pretty; }
+  .sub strong { color: var(--ink); font-weight: 600; }
+
+  .drop {
+    display: block; border: 2px dashed var(--border-strong); border-radius: 14px;
+    background: var(--surface); padding: 40px 24px; text-align: center; cursor: pointer;
+    transition: border-color 0.15s, background 0.15s; outline: none;
+  }
+  .drop:hover, .drop:focus-visible, .drop.is-over {
+    border-color: var(--brand); background: var(--brand-bg);
+  }
+  .drop-icon { font-size: 28px; color: var(--brand); margin-bottom: 8px; }
+  .drop-title { font-size: 16px; font-weight: 600; color: var(--ink); }
+  .drop-hint {
+    font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 12px;
+    color: var(--ink-3); margin-top: 6px;
+  }
+
+  .status { margin: 16px 0 0; font-size: 14px; color: var(--ink-2); }
+  .status.err { color: var(--danger); }
+
+  .result {
+    margin-top: 28px; border: 1px solid var(--border); border-radius: 14px;
+    background: var(--surface); padding: 24px;
+  }
+  .result-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; }
+  .result-engine { font-size: 20px; font-weight: 700; color: var(--ink); }
+  .result-file {
+    font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 12px;
+    color: var(--ink-3); margin-top: 4px; word-break: break-all;
+  }
+  .badge {
+    flex-shrink: 0; font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 10px;
+    font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase;
+    padding: 4px 9px; border-radius: 999px; border: 1px solid;
+  }
+  .badge.high   { color: var(--success); background: var(--success-bg); border-color: var(--success); }
+  .badge.medium { color: var(--warning); background: var(--warning-bg); border-color: var(--warning); }
+  .badge.low, .badge.none {
+    color: var(--ink-3); background: var(--surface-alt); border-color: var(--border-strong);
+  }
+
+  .modifiers {
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-size: 12.5px; line-height: 1.7; color: var(--ink-2); margin: 0; text-wrap: pretty;
+  }
+
+  /* #r-msi is a static element (scoped). Its inner nodes are built dynamically in the page
+     script, so their class rules live in the global block below (scoped rules can't reach them). */
+  #r-msi { margin-top: 8px; }
+  .meta {
+    display: grid; grid-template-columns: auto 1fr; gap: 4px 16px; margin: 18px 0 0;
+    padding-top: 16px; border-top: 1px solid var(--border); font-size: 13px;
+  }
+  .engines { margin: 48px 0 0; }
+  .engines h2 { font-size: 22px; font-weight: 800; letter-spacing: -0.02em; color: var(--ink); margin: 0 0 8px; }
+  .engines-sub { font-size: 15px; line-height: 1.6; color: var(--ink-2); margin: 0 0 20px; text-wrap: pretty; }
+  .engines-table { width: 100%; border-collapse: collapse; font-size: 14px; }
+  .engines-table th {
+    text-align: left; font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 11px;
+    letter-spacing: 0.06em; text-transform: uppercase; color: var(--ink-2); font-weight: 700;
+    padding: 0 12px 8px 0; border-bottom: 1px solid var(--border);
+  }
+  .engines-table td { padding: 10px 12px 10px 0; border-bottom: 1px solid var(--border); color: var(--ink-2); vertical-align: top; }
+  .engines-table td:first-child { color: var(--ink); font-weight: 600; }
+  .engines-table code {
+    font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 12.5px; color: var(--ink); word-break: break-all;
+  }
+  .ec {
+    display: inline-block; font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 10px;
+    font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; padding: 2px 7px;
+    border-radius: 999px; border: 1px solid; white-space: nowrap;
+  }
+  .ec-high { color: var(--success); background: var(--success-bg); border-color: var(--success); }
+  .ec-med  { color: var(--warning); background: var(--warning-bg); border-color: var(--warning); }
+  .ec-low  { color: var(--ink-3); background: var(--surface-alt); border-color: var(--border-strong); }
+  .engines-foot { font-size: 13.5px; line-height: 1.6; color: var(--ink-3); margin: 18px 0 0; text-wrap: pretty; }
+  .engines-foot a { color: var(--brand); text-decoration: underline; text-underline-offset: 2px; }
+
+  .info { display: grid; grid-template-columns: 1fr 1fr; gap: 32px; margin: 48px 0 0; }
+  .info-col h2 { font-size: 17px; font-weight: 700; color: var(--ink); margin: 0 0 8px; }
+  .info-col p { font-size: 14px; line-height: 1.65; color: var(--ink-2); margin: 0; text-wrap: pretty; }
+  .info-col a { color: var(--brand); text-decoration: underline; text-underline-offset: 2px; }
+
+  .byline {
+    margin: 40px 0 0; padding-top: 24px; border-top: 1px solid var(--border);
+    font-size: 14px; color: var(--ink-3); line-height: 1.6;
+  }
+  .byline a { color: var(--brand); text-decoration: underline; text-underline-offset: 2px; }
+
+  @media (max-width: 720px) {
+    .wrap { padding: 40px 20px 64px; }
+    h1 { font-size: 30px; }
+    .info { grid-template-columns: 1fr; gap: 24px; }
+  }
+</style>
+
+<!--
+  These rules target nodes built in the page script with document.createElement(). Such nodes don't
+  carry Astro's scope attribute, so scoped class selectors (above) never match them. Declaring them
+  global, prefixed with #result, applies them while keeping the styles confined to this page.
+-->
+<style is:global>
+  #result .catalog {
+    margin: 16px 0 4px; padding: 16px 18px; border: 1px solid var(--brand);
+    border-left-width: 4px; border-radius: 10px; background: var(--brand-bg);
+  }
+  #result .catalog-head { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+  #result .catalog-badge {
+    font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 10px; font-weight: 700;
+    letter-spacing: 0.06em; text-transform: uppercase; color: #fff; background: var(--brand);
+    padding: 3px 8px; border-radius: 999px;
+  }
+  #result .catalog-name { font-size: 16px; font-weight: 700; color: var(--ink); }
+  #result .catalog-sub { font-size: 12.5px; line-height: 1.5; color: var(--ink-2); margin: 6px 0 0; }
+
+  #result .shell-toggle {
+    display: inline-flex; margin: 4px 0 18px; border: 1px solid var(--border-strong);
+    border-radius: 8px; overflow: hidden;
+  }
+  #result .shell-btn {
+    background: var(--surface-alt); border: none; color: var(--ink-3);
+    font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 11px; font-weight: 600;
+    letter-spacing: 0.04em; padding: 6px 14px; cursor: pointer; transition: background 0.12s, color 0.12s;
+  }
+  #result .shell-btn + .shell-btn { border-left: 1px solid var(--border-strong); }
+  #result .shell-btn:hover { color: var(--ink); }
+  #result .shell-btn.is-active { background: var(--brand); color: #fff; }
+  #result .shell-hint {
+    font-size: 12.5px; line-height: 1.55; color: var(--ink-3); margin: 12px 0 0; text-wrap: pretty;
+  }
+  #result .shell-hint code {
+    font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 11.5px;
+    background: var(--surface-alt); border-radius: 4px; padding: 1px 4px; color: var(--ink-2);
+  }
+  #result .besttry-btn {
+    margin: 18px 0 0; background: var(--surface-alt); border: 1px dashed var(--border-strong);
+    border-radius: 8px; color: var(--ink-2); font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-size: 12px; font-weight: 600; padding: 8px 14px; cursor: pointer;
+    transition: color 0.12s, border-color 0.12s;
+  }
+  #result .besttry-btn:hover { color: var(--brand); border-color: var(--brand); }
+  #result .besttry-btn:disabled { opacity: 0.6; cursor: default; }
+
+  #result .deploy {
+    margin: 16px 0 0; border: 1px solid var(--border); border-radius: 10px;
+    background: var(--surface-alt); padding: 2px 16px;
+  }
+  #result .deploy summary {
+    font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 12px; font-weight: 700;
+    letter-spacing: 0.04em; color: var(--ink); cursor: pointer; padding: 12px 0;
+  }
+  #result #r-intune-body, #result #r-psadt-body { padding-bottom: 14px; }
+  #result .iw-row { display: flex; align-items: center; flex-wrap: wrap; gap: 4px; }
+  #result .iw-status { font-size: 12.5px; color: var(--ink-3); }
+  #result .test-note { margin: 12px 0 0; }
+  #result .test-note > summary { font-size: 13px; font-weight: 600; color: var(--brand); cursor: pointer; }
+  #result .test-note > summary:hover { text-decoration: underline; }
+  #result .test-note .notes { margin-top: 6px; }
+  #result .test-note .notes a { color: var(--brand); text-decoration: underline; text-underline-offset: 2px; }
+  #result .deploy-warn {
+    margin: 6px 0 14px; padding: 8px 12px; border-radius: 8px;
+    background: var(--warning-bg); border: 1px solid var(--warning);
+    color: var(--ink-2); font-size: 12.5px; line-height: 1.5; text-wrap: pretty;
+  }
+  /* .intunewin hero panel — the spotlighted, recommended path */
+  #result .deploy-primary {
+    margin: 16px 0 0; border: 1.5px solid var(--brand); border-radius: 12px;
+    background: var(--brand-bg); padding: 18px 18px 8px;
+  }
+  #result .deploy-head h3 {
+    display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+    margin: 0; font-size: 17px; font-weight: 800; letter-spacing: -0.01em; color: var(--ink);
+  }
+  #result .rec-badge {
+    font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 10px; font-weight: 700;
+    letter-spacing: 0.06em; text-transform: uppercase; color: #fff; background: var(--brand);
+    border-radius: 999px; padding: 3px 9px;
+  }
+  #result .deploy-why { margin: 8px 0 0; font-size: 13.5px; line-height: 1.6; color: var(--ink-2); text-wrap: pretty; }
+  #result .deploy-secondary summary { color: var(--ink-2); font-weight: 600; }
+  /* primary call-to-action (the in-browser .intunewin build button) */
+  #result .primary-btn {
+    margin: 16px 0 0; background: var(--brand); border: 1px solid var(--brand); color: #fff;
+    border-radius: 8px; font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-size: 13px; font-weight: 700; padding: 11px 18px; cursor: pointer;
+    transition: filter 0.12s, box-shadow 0.12s; box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
+  }
+  #result .primary-btn:hover { filter: brightness(1.07); box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12); }
+  #result .primary-btn:disabled { opacity: 0.6; cursor: default; }
+
+  #result .chips { display: flex; flex-wrap: wrap; gap: 6px; margin: 10px 0 0; }
+  #result .chip {
+    font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 12px; color: var(--ink);
+    background: var(--surface); border: 1px solid var(--border-strong); border-radius: 6px; padding: 3px 8px;
+  }
+
+  /* ── command builder ── */
+  #result .builder {
+    margin: 22px 0 0; padding: 18px; border: 1px solid var(--border); border-radius: 10px;
+    background: var(--surface-alt);
+  }
+  #result .builder-grid { display: flex; flex-direction: column; gap: 12px; margin: 8px 0 6px; }
+  #result .b-row { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+  #result .b-row[hidden] { display: none; }
+  #result .b-label {
+    flex: 0 0 92px; font-size: 12px; font-weight: 600;
+    letter-spacing: 0.04em; text-transform: uppercase; color: var(--ink-2);
+  }
+  #result .seg { display: inline-flex; border: 1px solid var(--border-strong); border-radius: 7px; overflow: hidden; }
+  #result .seg-btn {
+    background: var(--surface); border: none; color: var(--ink-3);
+    font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 11px; font-weight: 600;
+    padding: 5px 11px; cursor: pointer; transition: background 0.12s, color 0.12s;
+  }
+  #result .seg-btn + .seg-btn { border-left: 1px solid var(--border-strong); }
+  #result .seg-btn:hover { color: var(--ink); }
+  #result .seg-btn.is-active { background: var(--brand); color: #fff; }
+  #result .b-check { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; color: var(--ink-2); cursor: pointer; }
+  #result .b-check code {
+    font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 11px; color: var(--ink-3);
+    background: var(--surface); border: 1px solid var(--border); border-radius: 4px; padding: 0 4px;
+  }
+  #result .b-input {
+    flex: 1; min-width: 160px; font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 12.5px;
+    color: var(--ink); background: var(--surface); border: 1px solid var(--border-strong);
+    border-radius: 7px; padding: 6px 10px;
+  }
+  #result .b-input-sm { flex: 0 1 220px; }
+  #result .b-input:focus { outline: none; border-color: var(--brand); }
+  #result .b-props { display: flex; flex-direction: column; gap: 8px; flex: 1; min-width: 240px; }
+  #result .b-prop { display: flex; align-items: center; gap: 8px; }
+  #result .b-prop-key {
+    flex: 0 0 auto; max-width: 46%; font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 12px;
+    color: var(--ink-2); background: var(--surface); border: 1px solid var(--border); border-radius: 6px;
+    padding: 6px 8px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  #result .b-prop-key-input { flex: 0 0 42%; min-width: 0; }
+  #result .b-prop-val { flex: 1; }
+  #result .b-addprop {
+    align-self: flex-start; background: none; border: 1px dashed var(--border-strong); border-radius: 6px;
+    color: var(--ink-3); font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 11px;
+    padding: 5px 10px; cursor: pointer; transition: color 0.12s, border-color 0.12s;
+  }
+  #result .b-addprop:hover { color: var(--brand); border-color: var(--brand); }
+
+  #result .lbl {
+    font-size: 12px; font-weight: 600;
+    letter-spacing: 0.04em; text-transform: uppercase; color: var(--ink-2);
+    margin: 20px 0 8px;
+  }
+  #result .cmd {
+    display: flex; align-items: stretch; gap: 8px; background: var(--dark-bg);
+    border: 1px solid var(--border-strong); border-radius: 8px; overflow: hidden;
+  }
+  #result .cmd code {
+    flex: 1; min-width: 0; font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-size: 13px; color: var(--dark-ink); padding: 12px 14px; overflow-x: auto;
+    white-space: pre; line-height: 1.5;
+  }
+  #result .copy {
+    flex-shrink: 0; border: none; border-left: 1px solid var(--dark-border);
+    background: transparent; color: var(--brand-light); font-weight: 600; font-size: 12px;
+    padding: 0 16px; cursor: pointer; transition: background 0.15s;
+  }
+  #result .copy:hover { background: var(--dark-surface); }
+
+  #result .notes { font-size: 14px; line-height: 1.6; color: var(--ink-2); margin: 18px 0 0; text-wrap: pretty; }
+
+  #result .props { list-style: none; margin: 8px 0 0; padding: 0; display: flex; flex-direction: column; gap: 12px; }
+  #result .props li {
+    display: grid; grid-template-columns: auto 1fr; align-items: baseline; column-gap: 12px; row-gap: 3px;
+  }
+  #result .tier {
+    grid-row: 1; font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 9px;
+    font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; text-align: center;
+    padding: 3px 7px; border-radius: 999px; border: 1px solid; align-self: center; min-width: 64px;
+  }
+  #result .tier-required  { color: var(--danger);  background: var(--danger-bg, rgba(220,38,38,0.08));  border-color: var(--danger); }
+  #result .tier-likely    { color: var(--warning); background: var(--warning-bg); border-color: var(--warning); }
+  #result .tier-sensitive { color: var(--brand);   background: var(--brand-bg);   border-color: var(--brand); }
+  #result .tier-optional  { color: var(--ink-3);   background: var(--surface-alt); border-color: var(--border-strong); }
+  #result .prop-name {
+    font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 12.5px; color: var(--ink);
+    word-break: break-all;
+  }
+  #result .prop-reason { grid-column: 2; font-size: 12.5px; line-height: 1.5; color: var(--ink-3); text-wrap: pretty; }
+
+  #result .all-props { margin-top: 20px; }
+  #result .all-props summary {
+    font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 11px; letter-spacing: 0.06em;
+    text-transform: uppercase; color: var(--ink-4); cursor: pointer; padding: 6px 0;
+  }
+  #result .all-props table { width: 100%; border-collapse: collapse; margin-top: 6px; font-size: 12.5px; }
+  #result .all-props td {
+    padding: 4px 10px 4px 0; vertical-align: top; border-top: 1px solid var(--border); color: var(--ink-2);
+  }
+  #result .all-props td:first-child { white-space: nowrap; }
+  #result .all-props td code { font-family: 'JetBrains Mono', ui-monospace, monospace; color: var(--ink); }
+  #result .secret-tag {
+    margin-left: 6px; font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 9px;
+    font-weight: 700; text-transform: uppercase; color: var(--danger); border: 1px solid var(--danger);
+    border-radius: 4px; padding: 1px 4px;
+  }
+  #result .meta dt { color: var(--ink-4); font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 11px; }
+  #result .meta dd { margin: 0; color: var(--ink-2); }
+</style>
+
+<script>
+  import { detectInstaller, bestEffortSwitches } from '../lib/installerDetect';
+  import type { DetectionResult } from '../lib/installerDetect';
+  import type { MsiAnalysis } from '../lib/msi';
+  import { lookupCatalog } from '../lib/catalog';
+  import { generatePsadt, psadtCommands, detectionRule, defaultDetectionKind,
+           type PsadtInput, type PsadtOptions, type DetectionKind } from '../lib/psadt';
+  import { buildIntuneWin } from '../lib/intunewin';
+
+  const MAX_BYTES = 1536 * 1024 * 1024; // 1.5 GB — refuse absurd files so the tab can't OOM
+  // The in-browser .intunewin build holds several full copies of the file in tab memory
+  // (read buffer + STORE zip + AES ciphertext + output), so peak RAM is ~4-5x the file size.
+  // Cap it well below MAX_BYTES so packaging can't freeze/OOM the tab; bigger files → IntuneWinAppUtil.
+  const INTUNEWIN_MAX_BYTES = 512 * 1024 * 1024; // 512 MB
+
+  const $ = <T extends HTMLElement>(id: string) => document.getElementById(id) as T;
+  const drop = $('drop');
+  const fileInput = $<HTMLInputElement>('file');
+  const statusEl = $('status');
+  const result = $('result');
+
+  type Shell = 'cmd' | 'pwsh';
+  let shell: Shell = 'cmd';
+  let lastResult: DetectionResult | null = null;
+  let lastBuf: ArrayBuffer | null = null; // retained so the "try anyway" button can re-scan the bytes
+  let recomputeBuilder: (() => void) | null = null;
+
+  /** Rewrite a CMD-style command for PowerShell: a current-dir exe needs a .\ prefix, a quoted
+      path needs the call operator &, and %VAR% becomes $env:VAR. msiexec and other PATH tools
+      are left untouched. */
+  function shellify(cmd: string): string {
+    if (shell !== 'pwsh') return cmd;
+    const s = cmd.replace(/%([A-Za-z_][A-Za-z0-9_()]*)%/g, '$env:$1');
+    if (s.startsWith('"')) return '& ' + s;                 // quoted path → call operator
+    const head = s.split(/\s/, 1)[0];
+    const onPath = /^(msiexec|sc|net|reg|wusa|rundll32|dism|powershell|pwsh|cmd)(\.exe)?$/i.test(head);
+    if (!onPath && /\.exe$/i.test(head) && !/[\\/]/.test(head)) return '.\\' + s; // current-dir exe
+    return s;
+  }
+
+  function setStatus(msg: string, isErr = false) {
+    statusEl.textContent = msg;
+    statusEl.classList.toggle('err', isErr);
+    statusEl.hidden = !msg;
+  }
+
+  async function copyText(text: string, btn: HTMLButtonElement) {
+    try {
+      await navigator.clipboard.writeText(text);
+      const old = btn.textContent;
+      btn.textContent = 'Copied!';
+      setTimeout(() => { btn.textContent = old; }, 1400);
+    } catch { /* clipboard blocked — ignore */ }
+  }
+
+  /** Build a labeled command row with its own wired Copy button. */
+  function makeCmdBlock(label: string, cmd: string): HTMLDivElement {
+    const block = document.createElement('div');
+    block.className = 'cmd-block';
+
+    const lbl = document.createElement('div');
+    lbl.className = 'lbl';
+    lbl.textContent = label;
+
+    const row = document.createElement('div');
+    row.className = 'cmd';
+
+    const shown = shellify(cmd); // display + copy the shell-appropriate form
+    const code = document.createElement('code');
+    code.textContent = shown;
+
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'copy';
+    btn.textContent = 'Copy';
+    btn.addEventListener('click', () => copyText(shown, btn));
+
+    row.append(code, btn);
+    block.append(lbl, row);
+    return block;
+  }
+
+  function downloadText(filename: string, text: string) {
+    // Prepend a UTF-8 BOM (EF BB BF) as explicit bytes so PowerShell 5.1 reads the .ps1 as UTF-8,
+    // not ANSI (which mangles non-ASCII). Byte form avoids an invisible BOM char in this source.
+    const body = new TextEncoder().encode(text);
+    const out = new Uint8Array(body.length + 3);
+    out[0] = 0xef; out[1] = 0xbb; out[2] = 0xbf; out.set(body, 3);
+    downloadBlob(filename, new Blob([out], { type: 'text/plain;charset=utf-8' }));
+  }
+  function downloadBytes(filename: string, bytes: Uint8Array) {
+    downloadBlob(filename, new Blob([bytes], { type: 'application/octet-stream' }));
+  }
+  function downloadBlob(filename: string, blob: Blob) {
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = filename;
+    document.body.append(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1500);
+  }
+
+  /** Like makeCmdBlock but no shell rewrite — for the Intune launcher commands (shell-agnostic). */
+  function plainCmdBlock(label: string, text: string): HTMLDivElement {
+    const block = document.createElement('div'); block.className = 'cmd-block';
+    const lbl = document.createElement('div'); lbl.className = 'lbl'; lbl.textContent = label;
+    const row = document.createElement('div'); row.className = 'cmd';
+    const code = document.createElement('code'); code.textContent = text;
+    const btn = document.createElement('button'); btn.type = 'button'; btn.className = 'copy'; btn.textContent = 'Copy';
+    btn.addEventListener('click', () => copyText(text, btn));
+    row.append(code, btn); block.append(lbl, row); return block;
+  }
+
+  // ── small builder-style controls reused by the deploy options (styled by the global .seg/.b-* CSS) ──
+  function segControl(items: Array<{ id: string; label: string }>, initial: string, onPick: (id: string) => void): HTMLDivElement {
+    const seg = document.createElement('div'); seg.className = 'seg';
+    for (const it of items) {
+      const b = document.createElement('button');
+      b.type = 'button'; b.className = 'seg-btn'; b.textContent = it.label; b.dataset.id = it.id;
+      if (it.id === initial) b.classList.add('is-active');
+      b.addEventListener('click', () => {
+        seg.querySelectorAll('.seg-btn').forEach((x) => x.classList.remove('is-active'));
+        b.classList.add('is-active'); onPick(it.id);
+      });
+      seg.append(b);
+    }
+    return seg;
+  }
+  function optionRow(label: string, ...controls: HTMLElement[]): HTMLDivElement {
+    const row = document.createElement('div'); row.className = 'b-row';
+    const l = document.createElement('span'); l.className = 'b-label'; l.textContent = label;
+    row.append(l, ...controls); return row;
+  }
+  function checkOption(labelText: string, code: string, checked: boolean, onChange: (v: boolean) => void): HTMLLabelElement {
+    const lab = document.createElement('label'); lab.className = 'b-check';
+    const cb = document.createElement('input'); cb.type = 'checkbox'; cb.checked = checked;
+    cb.addEventListener('change', () => onChange(cb.checked));
+    const txt = document.createElement('span'); txt.textContent = labelText + ' ';
+    const c = document.createElement('code'); c.textContent = code;
+    lab.append(cb, txt, c); return lab;
+  }
+
+  function psadtInputFrom(r: DetectionResult, fn: string, install: string, uninstall: string): PsadtInput {
+    const splitProg = (cmd: string): [string, string] => {
+      cmd = cmd.trim();
+      if (cmd.startsWith('"')) { const e = cmd.indexOf('"', 1); return e < 0 ? [cmd, ''] : [cmd.slice(1, e), cmd.slice(e + 1).trim()]; }
+      const s = cmd.indexOf(' '); return s < 0 ? [cmd, ''] : [cmd.slice(0, s), cmd.slice(s + 1).trim()];
+    };
+    let installArgs = '';
+    if (r.engine === 'msi') installArgs = (install.match(/[A-Z_][A-Z0-9_]*=("[^"]*"|\S+)/g) ?? []).join(' '); // extra MSI props
+    else installArgs = splitProg(install)[1];
+    let uninstallFile: string | undefined;
+    let uninstallArgs: string | undefined;
+    if (r.engine !== 'msi' && uninstall) {
+      const [f, a] = splitProg(uninstall);
+      if (!/^msiexec$/i.test(f)) { uninstallFile = f; uninstallArgs = a; }
+    }
+    return {
+      vendor: r.company ?? '', name: r.product ?? fn, version: r.version ?? '',
+      engine: r.engine, fileName: fn, installArgs, msiProductCode: r.msi?.productCode, uninstallFile, uninstallArgs,
+    };
+  }
+
+  function renderDeploy(input: PsadtInput, rawInstall: string, rawUninstall: string, catDetect?: string) {
+    const iroot = $('r-intune-body'); iroot.innerHTML = '';
+    const proot = $('r-psadt-body'); proot.innerHTML = '';
+    const note = (t: string) => { const e = document.createElement('p'); e.className = 'notes'; e.textContent = t; return e; };
+
+    // ── Intune (.intunewin) — self-contained, no framework ──
+    const ib = document.createElement('button');
+    ib.type = 'button'; ib.className = 'primary-btn'; ib.textContent = '⬇ Build .intunewin (in browser)';
+    const status = document.createElement('span'); status.className = 'iw-status';
+    ib.addEventListener('click', async () => {
+      if (!lastBuf) return;
+      if (lastBuf.byteLength > INTUNEWIN_MAX_BYTES) {
+        status.textContent = ` — this file is over ${(INTUNEWIN_MAX_BYTES / 1024 / 1024) | 0} MB; too big to package in a browser tab. Use Microsoft's IntuneWinAppUtil.exe for this one.`;
+        return;
+      }
+      ib.disabled = true; const old = ib.textContent; ib.textContent = 'Packaging…'; status.textContent = '';
+      try {
+        const out = await buildIntuneWin(input.fileName, new Uint8Array(lastBuf), input.name);
+        downloadBytes((input.fileName.replace(/\.[^.]+$/, '') || 'package') + '.intunewin', out);
+        status.textContent = ' ✓ built';
+      } catch (e) {
+        status.textContent = ' — packaging failed: ' + (e as Error).message;
+      }
+      ib.disabled = false; ib.textContent = old;
+    });
+    const ibRow = document.createElement('div'); ibRow.className = 'iw-row'; ibRow.append(ib, status);
+    iroot.append(note(`Packages installers up to ${(INTUNEWIN_MAX_BYTES / 1024 / 1024) | 0} MB. The whole package is built in your browser's memory (zip + AES-256 + HMAC), so larger files can be slow or run the tab out of memory — for those, use Microsoft's IntuneWinAppUtil.exe.`));
+    iroot.append(ibRow);
+    // How to test the built package without an Intune tenant (Windows Sandbox + decoder).
+    const test = document.createElement('details'); test.className = 'test-note';
+    const testSum = document.createElement('summary'); testSum.textContent = 'How to test this without Intune';
+    const testBody = document.createElement('div'); testBody.className = 'notes';
+    testBody.innerHTML =
+      'The .intunewin is just your installer + the command, encrypted — Intune decrypts it and runs the command. ' +
+      'To check it yourself: <strong>(1) the real test</strong> — run the install command in a throwaway VM. ' +
+      '<strong>Windows Sandbox</strong> (free, built into Win10/11 Pro) is ideal: copy the installer in, run the ' +
+      'command, and confirm it installs silently and your detection rule is met. <strong>(2) verify the package</strong> — ' +
+      'decrypt it with <a href="https://github.com/okieselbach/Intune/tree/master/IntuneWinAppUtilDecoder" target="_blank" rel="noopener">IntuneWinAppUtilDecoder</a>; ' +
+      'it should hand back your original installer, intact.';
+    test.append(testSum, testBody);
+    iroot.append(test);
+    iroot.append(plainCmdBlock('Intune install command', rawInstall));
+    if (rawUninstall) iroot.append(plainCmdBlock('Intune uninstall command', rawUninstall));
+    // Detection-rule picker (MSI code / File / Registry) — the rule you set in the Intune portal.
+    // A catalog match supplies a verified install path (catDetect) for EXE apps we can't read statically;
+    // default to File detection with that real path, but keep the picker working for the other rule types.
+    let detKind: DetectionKind = catDetect ? 'file' : defaultDetectionKind(input);
+    const detNote = note('');
+    const setDet = () => {
+      const txt = (detKind === 'file' && catDetect)
+        ? `File exists: "${catDetect}" — verified install path for this app.`
+        : detectionRule(input, detKind);
+      detNote.textContent = 'Detection rule — ' + txt;
+    };
+    iroot.append(optionRow('Detection', segControl(
+      [{ id: 'msi', label: 'MSI code' }, { id: 'file', label: 'File' }, { id: 'registry', label: 'Registry' }],
+      detKind, (id) => { detKind = id as DetectionKind; setDet(); },
+    )));
+    setDet();
+    iroot.append(detNote);
+    iroot.append(note('In Intune: New Win32 app → upload the .intunewin → paste the install/uninstall commands above → set the detection rule above. Done — no IntuneWinAppUtil, no module install.'));
+
+    // ── PSADT v4 deploy script — needs the PSADT framework around it ──
+    const dl = document.createElement('button');
+    dl.type = 'button'; dl.className = 'besttry-btn'; dl.textContent = '⬇ Download Invoke-AppDeployToolkit.ps1';
+    dl.addEventListener('click', () => downloadText('Invoke-AppDeployToolkit.ps1', generatePsadt(input)));
+    proot.append(dl);
+    const psnote = document.createElement('p');
+    psnote.className = 'notes';
+    psnote.innerHTML =
+      "This is the CONFIGURED deploy script, <strong>not the engine</strong> — it won't run on its own. " +
+      'Get PSADT v4 from <a href="https://psappdeploytoolkit.com" target="_blank" rel="noopener">psappdeploytoolkit.com</a> ' +
+      '(it ships the module + Invoke-AppDeployToolkit.exe), drop this .ps1 + your installer (into .\\Files) ' +
+      'into the template, then deploy with the command below.';
+    proot.append(psnote);
+
+    // PSADT invocation options — these change the deploy command below, not the .ps1 body
+    // (Suppress reboot & Terminal Server are passed as switches; the .ps1 always accepts them).
+    const opts: PsadtOptions = { deployMode: 'Silent', suppressReboot: true, terminalServerMode: false };
+    const cmdWrap = document.createElement('div');
+    const renderCmds = () => {
+      cmdWrap.innerHTML = '';
+      const c = psadtCommands(opts);
+      cmdWrap.append(plainCmdBlock('Deploy command (inside the PSADT package)', c.install));
+      cmdWrap.append(plainCmdBlock('Uninstall command (inside the PSADT package)', c.uninstall));
+    };
+    proot.append(optionRow('Mode', segControl(
+      [{ id: 'Silent', label: 'Silent' }, { id: 'Interactive', label: 'Interactive' },
+       { id: 'NonInteractive', label: 'NonInteractive' }, { id: 'Auto', label: 'Auto' }],
+      opts.deployMode, (id) => { opts.deployMode = id as PsadtOptions['deployMode']; renderCmds(); },
+    )));
+    proot.append(optionRow('Flags',
+      checkOption('Suppress reboot (3010)', '-SuppressRebootPassThru', opts.suppressReboot, (v) => { opts.suppressReboot = v; renderCmds(); }),
+      checkOption('Terminal Server', '-TerminalServerMode', opts.terminalServerMode, (v) => { opts.terminalServerMode = v; renderCmds(); }),
+    ));
+    proot.append(cmdWrap);
+    renderCmds();
+  }
+
+  /** Build the deep MSI analysis block: tiered required props, uninstall-replay, full dump. */
+  function renderMsi(a: MsiAnalysis | undefined) {
+    const root = $('r-msi');
+    root.innerHTML = '';
+    if (!a) { root.hidden = true; return; }
+    root.hidden = false;
+
+    // Tiered "properties you likely need to set"
+    if (a.required.length) {
+      const h = document.createElement('div');
+      h.className = 'lbl';
+      h.textContent = 'Properties this MSI likely needs';
+      root.append(h);
+
+      const ul = document.createElement('ul');
+      ul.className = 'props';
+      for (const p of a.required) {
+        const li = document.createElement('li');
+
+        const badge = document.createElement('span');
+        badge.className = 'tier tier-' + p.tier;
+        badge.textContent = p.tier;
+
+        const name = document.createElement('code');
+        name.className = 'prop-name';
+        name.textContent = p.value ? `${p.name}=${p.value}` : p.name;
+
+        const reason = document.createElement('span');
+        reason.className = 'prop-reason';
+        reason.textContent = p.reason;
+
+        li.append(badge, name, reason);
+        ul.append(li);
+      }
+      root.append(ul);
+    }
+
+    // Uninstall-replay warning + ready command
+    const uh = document.createElement('div');
+    uh.className = 'lbl';
+    uh.textContent = 'Uninstall — replay these properties';
+    root.append(uh);
+
+    const note = document.createElement('p');
+    note.className = 'notes';
+    if (a.uninstallReplay.length) {
+      note.textContent =
+        `MSI properties don't persist past install — on /x, deferred custom actions re-run with the ` +
+        `package's authored defaults, not your install-time values. If you set these at install, pass ` +
+        `them again at uninstall: ${a.uninstallReplay.join(', ')}.` +
+        (a.registryRecovery
+          ? ' (This MSI uses AppSearch/RegLocator, so some values may be recovered from the registry.)'
+          : '');
+    } else {
+      note.textContent = "No install-time properties appear to be consumed by uninstall custom actions.";
+    }
+    root.append(note);
+    root.append(makeCmdBlock('Uninstall (with replayed properties)', a.uninstallCommand));
+
+    // Full property dump — expanded by default so nothing's hidden, unless the list is long (50+),
+    // in which case collapse it and point the user there in case the tiered list missed their switch.
+    const collapsed = a.properties.length >= 50;
+    if (collapsed) {
+      const hint = document.createElement('p');
+      hint.className = 'notes';
+      hint.textContent =
+        `Didn't find the property you need, or the install still isn't working? Expand “All ` +
+        `${a.properties.length} properties” below — the list above highlights the common switches, but ` +
+        'the full table is the source of truth.';
+      root.append(hint);
+    }
+    const details = document.createElement('details');
+    details.className = 'all-props';
+    details.open = !collapsed;
+    const summary = document.createElement('summary');
+    summary.textContent = `All ${a.properties.length} properties`;
+    details.append(summary);
+
+    const table = document.createElement('table');
+    for (const p of a.properties) {
+      const tr = document.createElement('tr');
+      const td1 = document.createElement('td');
+      const nameCode = document.createElement('code');
+      nameCode.textContent = p.name;
+      td1.append(nameCode);
+      if (p.isSecret) {
+        const tag = document.createElement('span');
+        tag.className = 'secret-tag';
+        tag.textContent = 'secret';
+        td1.append(tag);
+      }
+      const td2 = document.createElement('td');
+      td2.textContent = p.value;
+      tr.append(td1, td2);
+      table.append(tr);
+    }
+    details.append(table);
+    root.append(details);
+  }
+
+  // ── command builder ───────────────────────────────────────────────────────
+  interface BuildCfg {
+    ops: Array<{ id: string; label: string }>;
+    passive: boolean; norestart: boolean; log: boolean; dir: boolean; props: boolean;
+    noupdates?: boolean; noprereqs?: boolean; // Advanced Installer bootstrapper toggles
+    dirLabel?: (op: string) => string;
+  }
+  const BUILDER: Record<string, BuildCfg> = {
+    'msi': {
+      ops: [
+        { id: 'install', label: 'Install' }, { id: 'repair', label: 'Repair' },
+        { id: 'uninstall', label: 'Uninstall' }, { id: 'admin', label: 'Admin install' },
+      ],
+      passive: true, norestart: true, log: true, dir: true, props: true,
+      dirLabel: (op) => (op === 'admin' ? 'Extract to' : 'Install dir'),
+    },
+    'wix-burn': {
+      ops: [
+        { id: 'install', label: 'Install' }, { id: 'repair', label: 'Repair' },
+        { id: 'uninstall', label: 'Uninstall' }, { id: 'layout', label: 'Layout' },
+      ],
+      passive: true, norestart: true, log: true, dir: true, props: false,
+      dirLabel: () => 'Layout folder',
+    },
+    'inno': {
+      ops: [{ id: 'install', label: 'Install' }, { id: 'uninstall', label: 'Uninstall' }],
+      passive: true, norestart: true, log: true, dir: true, props: false,
+    },
+    'nsis': {
+      ops: [{ id: 'install', label: 'Install' }, { id: 'uninstall', label: 'Uninstall' }],
+      passive: false, norestart: false, log: false, dir: true, props: false,
+    },
+    'installshield': {
+      ops: [{ id: 'install', label: 'Install' }],
+      passive: false, norestart: false, log: false, dir: false, props: false,
+    },
+    'advanced-installer': {
+      ops: [{ id: 'install', label: 'Install' }, { id: 'uninstall', label: 'Uninstall' }, { id: 'extract', label: 'Extract MSI' }],
+      passive: true, norestart: true, log: true, dir: true, props: true,
+      noupdates: true, noprereqs: true,
+      dirLabel: (op) => (op === 'extract' ? 'Extract to' : 'Install dir'),
+    },
+    'sfx-winrar': {
+      ops: [{ id: 'install', label: 'Extract' }],
+      passive: false, norestart: false, log: false, dir: false, props: false,
+    },
+  };
+
+  interface BuildOpts {
+    op: string; ui: 'silent' | 'passive' | 'interactive';
+    norestart: boolean; log: boolean; logPath: string; dir: string;
+    noupdates: boolean; noprereqs: boolean;
+    props: Array<{ key: string; value: string }>;
+  }
+
+  // Does the install-dir field apply for this engine + operation?
+  function dirApplies(engine: string, op: string): boolean {
+    if (engine === 'msi') return op === 'install' || op === 'admin';
+    if (engine === 'wix-burn') return op === 'layout';
+    if (engine === 'inno' || engine === 'nsis') return op === 'install';
+    if (engine === 'advanced-installer') return op === 'install' || op === 'extract';
+    return false;
+  }
+
+  // Compose the CMD-form command from the builder options (shellify() adapts it for PowerShell).
+  function buildCommand(r: DetectionResult, o: BuildOpts): string {
+    const exe = r.fileName ?? 'setup.exe';
+    const msi = r.fileName ?? 'package.msi';
+    const code = r.msi?.productCode;
+    const p: string[] = [];
+    if (r.engine === 'msi') {
+      if (o.op === 'install') p.push(`msiexec /i "${msi}"`);
+      else if (o.op === 'repair') p.push(`msiexec /f ${code ?? `"${msi}"`}`);
+      else if (o.op === 'uninstall') p.push(`msiexec /x ${code ?? `"${msi}"`}`);
+      else p.push(`msiexec /a "${msi}"`);
+      if (o.dir && o.op === 'install') p.push(`INSTALLDIR="${o.dir}"`);
+      if (o.dir && o.op === 'admin') p.push(`TARGETDIR="${o.dir}"`);
+      for (const pr of o.props) if (pr.key && pr.value) p.push(`${pr.key}="${pr.value}"`);
+      if (o.ui === 'silent') p.push('/qn'); else if (o.ui === 'passive') p.push('/qb');
+      if (o.norestart) p.push('/norestart');
+      if (o.log) p.push(`/l*v "${o.logPath}"`);
+    } else if (r.engine === 'wix-burn') {
+      const verb = o.op === 'install' ? '/install' : o.op === 'repair' ? '/repair' : o.op === 'uninstall' ? '/uninstall' : '/layout';
+      p.push(`${exe} ${verb}`);
+      if (o.op === 'layout') p.push(`"${o.dir || 'C:\\Path'}"`);
+      if (o.ui === 'silent') p.push('/quiet'); else if (o.ui === 'passive') p.push('/passive');
+      if (o.norestart) p.push('/norestart');
+      if (o.log) p.push(`/log "${o.logPath}"`);
+    } else if (r.engine === 'inno') {
+      if (o.op === 'uninstall') p.push('"%ProgramFiles%\\<App>\\unins000.exe"'); else p.push(exe);
+      if (o.ui === 'silent') p.push('/VERYSILENT /SUPPRESSMSGBOXES'); else if (o.ui === 'passive') p.push('/SILENT');
+      if (o.op === 'install') p.push('/SP-');
+      if (o.norestart) p.push('/NORESTART');
+      if (o.dir && o.op === 'install') p.push(`/DIR="${o.dir}"`);
+      if (o.log) p.push(`/LOG="${o.logPath}"`);
+    } else if (r.engine === 'nsis') {
+      if (o.op === 'uninstall') p.push('"%ProgramFiles%\\<App>\\Uninstall.exe"'); else p.push(exe);
+      if (o.ui !== 'interactive') p.push('/S');
+      if (o.dir && o.op === 'install') p.push(`/D=${o.dir}`); // NSIS /D must be LAST and unquoted
+    } else if (r.engine === 'advanced-installer') {
+      if (o.op === 'extract') return `${exe} /extract "${o.dir || 'C:\\Path'}"`;
+      p.push(o.op === 'uninstall' ? `${exe} /x /exenoui` : `${exe} /exenoui`);
+      if (o.noupdates) p.push('/exenoupdates'); // EXE switches go before the msiexec ones
+      if (o.noprereqs) p.push('/noprereqs');
+      if (o.dir && o.op === 'install') p.push(`INSTALLDIR="${o.dir}"`);
+      for (const pr of o.props) if (pr.key && pr.value) p.push(`${pr.key}="${pr.value}"`);
+      if (o.ui === 'silent') p.push('/qn'); else if (o.ui === 'passive') p.push('/qb');
+      if (o.norestart) p.push('/norestart');
+      if (o.log) p.push(`/exelog "${o.logPath}"`);
+    } else if (r.engine === 'installshield') {
+      p.push(`${exe} /s /v"/qn"`);
+    } else if (r.engine === 'sfx-winrar') {
+      p.push(`${exe} /S`);
+    } else {
+      return '';
+    }
+    return p.join(' ');
+  }
+
+  function addPropRow(host: HTMLElement, key: string, value: string, editableKey = false) {
+    const rowEl = document.createElement('div');
+    rowEl.className = 'b-prop';
+    let keyEl: HTMLElement;
+    if (editableKey) {
+      const ki = document.createElement('input');
+      ki.className = 'b-input b-prop-key-input'; ki.placeholder = 'PROPERTY'; ki.value = key;
+      ki.autocomplete = 'off'; ki.spellcheck = false;
+      ki.addEventListener('input', () => recomputeBuilder?.());
+      keyEl = ki;
+    } else {
+      const kc = document.createElement('code');
+      kc.className = 'b-prop-key'; kc.textContent = key;
+      keyEl = kc;
+    }
+    const valEl = document.createElement('input');
+    valEl.className = 'b-input b-prop-val'; valEl.placeholder = 'value'; valEl.value = value ?? '';
+    valEl.autocomplete = 'off'; valEl.spellcheck = false;
+    valEl.addEventListener('input', () => recomputeBuilder?.());
+    rowEl.append(keyEl, valEl);
+    const addBtn = host.querySelector('.b-addprop');
+    if (addBtn) host.insertBefore(rowEl, addBtn); else host.append(rowEl);
+  }
+
+  function readProps(host: HTMLElement): Array<{ key: string; value: string }> {
+    const out: Array<{ key: string; value: string }> = [];
+    host.querySelectorAll('.b-prop').forEach((rowEl) => {
+      const ki = rowEl.querySelector('.b-prop-key-input') as HTMLInputElement | null;
+      const kc = rowEl.querySelector('.b-prop-key') as HTMLElement | null;
+      const key = (ki ? ki.value : (kc?.textContent ?? '')).trim();
+      const valEl = rowEl.querySelector('.b-prop-val') as HTMLInputElement | null;
+      const value = (valEl?.value ?? '').trim();
+      if (key) out.push({ key, value });
+    });
+    return out;
+  }
+
+  // Build the interactive command builder for the detected engine. Called only on a fresh file
+  // (full render) so typed values survive a shell-tab switch (which calls refreshShell instead).
+  function renderBuilder(r: DetectionResult) {
+    const root = $('r-builder');
+    recomputeBuilder = null;
+    const cfg = BUILDER[r.engine];
+    if (!cfg) { root.hidden = true; return; }
+    root.hidden = false;
+
+    let op = cfg.ops[0].id;
+    let ui: 'silent' | 'passive' | 'interactive' = 'silent';
+
+    const fillSeg = (host: HTMLElement, items: Array<{ id: string; label: string }>, initial: string, onPick: (id: string) => void) => {
+      host.innerHTML = '';
+      for (const it of items) {
+        const b = document.createElement('button');
+        b.type = 'button'; b.className = 'seg-btn'; b.textContent = it.label; b.dataset.id = it.id;
+        if (it.id === initial) b.classList.add('is-active');
+        b.addEventListener('click', () => {
+          host.querySelectorAll('.seg-btn').forEach((x) => x.classList.remove('is-active'));
+          b.classList.add('is-active'); onPick(it.id); recomputeBuilder?.();
+        });
+        host.append(b);
+      }
+    };
+
+    fillSeg($('b-op'), cfg.ops, op, (id) => { op = id; syncRows(); });
+    const uiItems = cfg.passive
+      ? [{ id: 'silent', label: 'Silent' }, { id: 'passive', label: 'Passive' }, { id: 'interactive', label: 'Interactive' }]
+      : [{ id: 'silent', label: 'Silent' }, { id: 'interactive', label: 'Interactive' }];
+    fillSeg($('b-ui'), uiItems, ui, (id) => { ui = id as typeof ui; });
+
+    const norestartEl = $<HTMLInputElement>('b-norestart');
+    const logEl = $<HTMLInputElement>('b-log');
+    const logPathEl = $<HTMLInputElement>('b-logpath');
+    const dirEl = $<HTMLInputElement>('b-dir');
+    const noupdatesEl = $<HTMLInputElement>('b-noupdates');
+    const noprereqsEl = $<HTMLInputElement>('b-noprereqs');
+    // Reset to defaults for the new file (these static inputs would otherwise keep prior state).
+    // Backslash literals are set HERE, not in the markup — Astro eats single backslashes in static
+    // HTML attribute values (treats them as JS-string escapes), turning "C:\Program Files" into "C:Program Files".
+    dirEl.value = ''; norestartEl.checked = true; logEl.checked = false;
+    noupdatesEl.checked = false; noprereqsEl.checked = false;
+    dirEl.placeholder = 'C:\\Program Files\\App';
+    logPathEl.value = 'C:\\Windows\\Temp\\install.log'; // exists on every machine + writable by SYSTEM/admins
+    norestartEl.onchange = () => recomputeBuilder?.();
+    logEl.onchange = () => recomputeBuilder?.();
+    logPathEl.oninput = () => recomputeBuilder?.();
+    dirEl.oninput = () => recomputeBuilder?.();
+    noupdatesEl.onchange = () => recomputeBuilder?.();
+    noprereqsEl.onchange = () => recomputeBuilder?.();
+
+    const propsHost = $('b-props');
+    propsHost.innerHTML = '';
+    if (cfg.props) {
+      // Seed from the parsed MSI (name+value) or, for Advanced Installer, the harvested names (no values).
+      const seeds = r.msi?.required?.length
+        ? r.msi.required.map((p) => ({ name: p.name, value: p.value }))
+        : (r.customProperties ?? []).map((name) => ({ name, value: '' }));
+      for (const s of seeds) addPropRow(propsHost, s.name, s.value);
+      const add = document.createElement('button');
+      add.type = 'button'; add.className = 'b-addprop'; add.textContent = '+ property';
+      add.addEventListener('click', () => { addPropRow(propsHost, '', '', true); recomputeBuilder?.(); });
+      propsHost.append(add);
+    }
+
+    const showRow = (ctl: string, on: boolean) => {
+      const el = root.querySelector(`.b-row[data-ctl="${ctl}"]`) as HTMLElement | null;
+      if (el) el.hidden = !on;
+    };
+    function syncRows() {
+      // Advanced Installer's Extract op takes only a path — hide everything else for it.
+      const extractOnly = r.engine === 'advanced-installer' && op === 'extract';
+      showRow('op', cfg.ops.length > 1);
+      showRow('ui', !extractOnly);
+      showRow('dir', cfg.dir && dirApplies(r.engine, op));
+      showRow('norestart', cfg.norestart && !extractOnly);
+      showRow('log', cfg.log && !extractOnly);
+      showRow('noupdates', !!cfg.noupdates && !extractOnly);
+      showRow('noprereqs', !!cfg.noprereqs && !extractOnly);
+      showRow('props', cfg.props && !extractOnly);
+      if (cfg.dirLabel) $('b-dir-label').textContent = cfg.dirLabel(op);
+    }
+
+    recomputeBuilder = () => {
+      $('b-out').textContent = shellify(buildCommand(r, {
+        op, ui,
+        norestart: cfg.norestart && norestartEl.checked,
+        log: cfg.log && logEl.checked,
+        logPath: logPathEl.value || 'C:\\Windows\\Temp\\install.log',
+        dir: cfg.dir ? dirEl.value.trim() : '',
+        noupdates: !!cfg.noupdates && noupdatesEl.checked,
+        noprereqs: !!cfg.noprereqs && noprereqsEl.checked,
+        props: readProps(propsHost),
+      }));
+    };
+    syncRows();
+    recomputeBuilder();
+  }
+
+  // Display-only render (no scroll, no builder rebuild) — safe to call on a shell-tab switch.
+  function renderDisplay(r: DetectionResult) {
+    $('r-engine').textContent = r.label;
+    $('r-file').textContent = r.fileName ?? '';
+
+    const badge = $('r-confidence');
+    badge.textContent = r.confidence === 'none' ? 'unknown' : r.confidence + ' confidence';
+    badge.className = 'badge ' + r.confidence;
+
+    // Curated catalog match — a HARD-CODED known string, shown prominently and clearly labeled as
+    // such (not read from the file). The fallback for the custom/compressed long tail.
+    const cat = lookupCatalog({ product: r.product, fileName: r.fileName });
+    // Guard: a name-match whose command contradicts the detected engine (e.g. a Firefox MSI hitting
+    // the Firefox-exe entry) would be wrong. Show the catalog only when the engine is weak (it's then
+    // the best answer) or when its command shape agrees with detection (both msiexec, or both exe).
+    const weakEngine = ['unknown-exe', 'dotnet', 'sfx-7z', 'sfx-winrar'].includes(r.engine) || r.confidence === 'low' || r.confidence === 'none';
+    const showCat = !!cat && (weakEngine || /^msiexec\b/i.test(cat.install) === (r.engine === 'msi'));
+    const catEl = $('r-catalog');
+    catEl.innerHTML = '';
+    if (cat && showCat) {
+      catEl.hidden = false;
+      const fn = r.fileName || 'installer.exe';
+      const head = document.createElement('div');
+      head.className = 'catalog-head';
+      const cbadge = document.createElement('span');
+      cbadge.className = 'catalog-badge';
+      cbadge.textContent = '📚 From catalog';
+      const nm = document.createElement('span');
+      nm.className = 'catalog-name';
+      nm.textContent = cat.name;
+      head.append(cbadge, nm);
+      const sub = document.createElement('p');
+      sub.className = 'catalog-sub';
+      sub.textContent = 'A hand-verified silent string for this app — a hard-coded known value, NOT read from your file.';
+      catEl.append(head, sub);
+      catEl.append(makeCmdBlock('Install (silent)', cat.install.replaceAll('{file}', fn)));
+      if (cat.uninstall) catEl.append(makeCmdBlock('Uninstall (silent)', cat.uninstall.replaceAll('{file}', fn)));
+      if (cat.note) {
+        const n = document.createElement('p');
+        n.className = 'notes';
+        n.textContent = cat.note;
+        catEl.append(n);
+      }
+    } else {
+      catEl.hidden = true;
+    }
+
+    const cmds = $('r-commands');
+    cmds.innerHTML = '';
+    // When a catalog match has a verified uninstall, use it for the displayed uninstall command too —
+    // the engine-derived one is a generic "%ProgramFiles%\<App>\Uninstall.exe" placeholder for NSIS/Inno.
+    const cmdFn = r.fileName || 'installer.exe';
+    for (const c of r.commands) {
+      const cmd = showCat && cat?.uninstall && /uninstall/i.test(c.label)
+        ? cat.uninstall.replaceAll('{file}', cmdFn)
+        : c.cmd;
+      cmds.append(makeCmdBlock(c.label, cmd));
+    }
+
+    // Shell tabs + hint apply when there are CMD/PowerShell commands to rewrite (engine commands OR
+    // a catalog match). MSIX is PowerShell-native (cmdlets), so the toggle doesn't apply there.
+    const shellable = (r.commands.length > 0 || showCat) && r.engine !== 'msix';
+    $('r-shell').hidden = !shellable;
+    $('r-shell-hint').hidden = !(shell === 'pwsh' && shellable);
+
+    // Deployment artifacts (PSADT v4 + Intune) — uses the catalog command if shown, else detection.
+    const deployEl = $('r-deploy');
+    if (shellable) {
+      deployEl.hidden = false;
+      const dfn = r.fileName || 'installer.exe';
+      const instCmd = showCat && cat ? cat.install.replaceAll('{file}', dfn) : (r.commands[0]?.cmd ?? '');
+      const unCmd = showCat && cat?.uninstall
+        ? cat.uninstall.replaceAll('{file}', dfn)
+        : (r.commands.find((c) => /uninstall/i.test(c.label))?.cmd ?? '');
+      const catDetect = showCat && cat?.detect ? cat.detect : undefined;
+      renderDeploy(psadtInputFrom(r, dfn, instCmd, unCmd), instCmd, unCmd, catDetect);
+    } else {
+      deployEl.hidden = true;
+      $('r-intune-body').innerHTML = '';
+      $('r-psadt-body').innerHTML = '';
+    }
+
+    const modBlock = $('r-modifiers-block');
+    if (r.modifiers) {
+      modBlock.hidden = false;
+      $('r-modifiers').textContent = r.modifiers;
+    } else {
+      modBlock.hidden = true;
+    }
+
+    // Custom property names harvested from the binary (Advanced Installer)
+    const customEl = $('r-custom');
+    customEl.innerHTML = '';
+    if (r.customProperties?.length) {
+      customEl.hidden = false;
+      const h = document.createElement('div');
+      h.className = 'lbl';
+      h.textContent = `Custom properties found in this build (${r.customProperties.length})`;
+      const note = document.createElement('p');
+      note.className = 'notes';
+      note.textContent =
+        'Harvested from the package — pass these as PROPERTY="value" (the builder below has them ' +
+        'pre-loaded as fields). Names only; default values live in the compressed MSI.';
+      const chips = document.createElement('div');
+      chips.className = 'chips';
+      for (const name of r.customProperties) {
+        const c = document.createElement('code');
+        c.className = 'chip';
+        c.textContent = name;
+        chips.append(c);
+      }
+      customEl.append(h, note, chips);
+    } else {
+      customEl.hidden = true;
+    }
+
+    $('r-notes').textContent = r.notes ?? '';
+
+    // Offer the best-effort harvest for custom / low-confidence results (reset any prior output).
+    const WEAK = ['dotnet', 'unknown-exe', 'sfx-7z', 'sfx-winrar'];
+    const showBest = !!lastBuf && (WEAK.includes(r.engine) || r.confidence === 'low' || r.confidence === 'none');
+    $('r-besttry').hidden = !showBest;
+    $('r-besttry-out').innerHTML = '';
+    const bbtn = $<HTMLButtonElement>('r-besttry-btn');
+    bbtn.disabled = false;
+    bbtn.textContent = '⚡ Try to extract switches anyway';
+
+    renderMsi(r.msi);
+
+    const meta = $<HTMLDListElement>('r-meta');
+    meta.innerHTML = '';
+    const rows: Array<[string, string | undefined]> = [
+      ['Product', r.product],
+      ['Version', r.version],
+      ['Publisher', r.company],
+      ['Built with', r.engineVersion],
+    ];
+    let any = false;
+    for (const [k, v] of rows) {
+      if (!v) continue;
+      any = true;
+      const dt = document.createElement('dt'); dt.textContent = k;
+      const dd = document.createElement('dd'); dd.textContent = v;
+      meta.append(dt, dd);
+    }
+    meta.hidden = !any;
+  }
+
+  // Full render for a freshly dropped file: display + (re)build the stateful builder, then reveal.
+  function render(r: DetectionResult) {
+    lastResult = r;
+    renderDisplay(r);
+    renderBuilder(r);
+    result.hidden = false;
+    result.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  }
+
+  // Re-skin the commands for the chosen shell WITHOUT rebuilding the builder form (keeps typed
+  // values) and WITHOUT scrolling. Used by the CMD/PowerShell tabs.
+  function refreshShell() {
+    if (!lastResult) return;
+    renderDisplay(lastResult);
+    recomputeBuilder?.();
+  }
+
+  async function handleFile(file: File) {
+    if (file.size > MAX_BYTES) {
+      setStatus(`That file is ${Math.round(file.size / 1024 / 1024)} MB — too big to parse safely in a tab.`, true);
+      return;
+    }
+    setStatus(`Reading ${file.name} (${Math.round(file.size / 1024)} KB)…`);
+    try {
+      const buf = await file.arrayBuffer();
+      lastBuf = buf;
+      const r = detectInstaller(buf, file.name);
+      setStatus('');
+      render(r);
+    } catch (e) {
+      setStatus('Could not read that file. Try another.', true);
+    }
+  }
+
+  // file picker
+  fileInput.addEventListener('change', () => {
+    const f = fileInput.files?.[0];
+    if (f) handleFile(f);
+  });
+
+  // drag + drop
+  ['dragenter', 'dragover'].forEach((ev) =>
+    drop.addEventListener(ev, (e) => { e.preventDefault(); drop.classList.add('is-over'); })
+  );
+  ['dragleave', 'drop'].forEach((ev) =>
+    drop.addEventListener(ev, (e) => { e.preventDefault(); drop.classList.remove('is-over'); })
+  );
+  drop.addEventListener('drop', (e) => {
+    const f = (e as DragEvent).dataTransfer?.files?.[0];
+    if (f) handleFile(f);
+  });
+  // keyboard: Enter/Space opens the picker (label already does for click)
+  drop.addEventListener('keydown', (e) => {
+    const k = (e as KeyboardEvent).key;
+    if (k === 'Enter' || k === ' ') { e.preventDefault(); fileInput.click(); }
+  });
+  // copy buttons are created per command block in makeCmdBlock(), wired there.
+
+  // CMD ⇄ PowerShell toggle — re-renders the current result in the chosen shell's syntax
+  document.querySelectorAll<HTMLButtonElement>('.shell-btn').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const next = (btn.dataset.shell as Shell) ?? 'cmd';
+      if (next === shell) return;
+      shell = next;
+      document.querySelectorAll<HTMLElement>('.shell-btn').forEach((b) =>
+        b.classList.toggle('is-active', b.dataset.shell === shell));
+      refreshShell();
+    });
+  });
+
+  // Builder's Copy button (static element, wired once)
+  $<HTMLButtonElement>('b-copy').addEventListener('click', () => {
+    const out = $('b-out');
+    copyText(out.textContent ?? '', $<HTMLButtonElement>('b-copy'));
+  });
+
+  // "Try anyway" best-effort harvest (static button, wired once)
+  function renderBestTry(flags: string[], options: string[]) {
+    const out = $('r-besttry-out');
+    out.innerHTML = '';
+    const disc = document.createElement('p');
+    disc.className = 'notes';
+    disc.textContent =
+      'Best-effort guesses harvested from the binary — strings that LOOK like switches/options. ' +
+      'Expect noise and gaps; verify against vendor docs before deploying.';
+    out.append(disc);
+    const section = (label: string, items: string[]) => {
+      if (!items.length) return;
+      const h = document.createElement('div');
+      h.className = 'lbl';
+      h.textContent = label;
+      const chips = document.createElement('div');
+      chips.className = 'chips';
+      for (const it of items) {
+        const c = document.createElement('code');
+        c.className = 'chip';
+        c.textContent = it;
+        chips.append(c);
+      }
+      out.append(h, chips);
+    };
+    section('Likely silent flags', flags);
+    section('Candidate option names', options);
+    if (!flags.length && !options.length) {
+      const p = document.createElement('p');
+      p.className = 'notes';
+      p.textContent = 'Nothing switch-like turned up in the readable strings.';
+      out.append(p);
+    }
+  }
+  $<HTMLButtonElement>('r-besttry-btn').addEventListener('click', () => {
+    if (!lastBuf) return;
+    const btn = $<HTMLButtonElement>('r-besttry-btn');
+    btn.disabled = true;
+    btn.textContent = 'Scanning…';
+    // defer so the label repaints before the (synchronous) scan runs
+    setTimeout(() => {
+      let res = { flags: [] as string[], options: [] as string[] };
+      try { res = bestEffortSwitches(lastBuf!); } catch { /* ignore */ }
+      renderBestTry(res.flags, res.options);
+      btn.textContent = '⚡ Re-scan';
+      btn.disabled = false;
+    }, 30);
+  });
+</script>

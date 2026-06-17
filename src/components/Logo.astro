@@ -1,0 +1,52 @@
+---
+/**
+ * Canonical RFF brand lockup — mirrors `RFFAppLockup` in the platform's
+ * `Brand.tsx` so the marketing site and the platform read as the same product.
+ *
+ * Mark: double-chevron (forward-slashes / fast-forward), second chevron at
+ * 60% opacity for motion. Sits on a violet rounded-square fill.
+ * Wordmark: lowercase `rff`, italicized trailing `f`, Inter Tight 800.
+ *
+ * If we ever want the full lockup with the "Really Freakin' Fast" tagline
+ * (e.g. on the footer or login screen), port `RFFWordmark` from Brand.tsx
+ * the same way — same SVG, just stack the tagline below in JetBrains Mono.
+ */
+---
+<a href="/" aria-label="RFF home" class="rff-logo">
+  <span class="mark" aria-hidden="true">
+    <svg width="18" height="18" viewBox="0 0 32 32" fill="none">
+      <path d="M 8 24 L 16 8" stroke="#FFFFFF" stroke-width="4" stroke-linecap="round" />
+      <path d="M 16 24 L 24 8" stroke="#FFFFFF" stroke-width="4" stroke-linecap="round" opacity="0.6" />
+    </svg>
+  </span>
+  <span class="word">rf<span class="word-italic">f</span></span>
+</a>
+
+<style>
+  .rff-logo {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .mark {
+    width: 28px;
+    height: 28px;
+    border-radius: 8px;          /* round(28 * 0.28) — matches Brand.tsx */
+    background: var(--brand);    /* violet, same token as the platform */
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+  .word {
+    font-family: 'Inter Tight', system-ui, sans-serif;
+    font-weight: 800;
+    font-size: 24px;
+    letter-spacing: -0.04em;
+    line-height: 1;
+    color: var(--ink);
+  }
+  .word-italic {
+    font-style: italic;
+  }
+</style>

@@ -1,0 +1,71 @@
+name: Submit a silent-install string
+description: Share the silent/unattended command for an installer SwitchHunt missed or got wrong. Feeds the catalog.
+title: "[catalog] <app name>"
+labels: ["catalog-submission"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for feeding the catalog! Fill in what you know — the gotchas are the most valuable part.
+        Please only submit commands you've **actually run**, or that come from the vendor's own docs.
+  - type: input
+    id: app
+    attributes:
+      label: App + vendor
+      placeholder: Citrix Workspace (Citrix Systems)
+    validations:
+      required: true
+  - type: input
+    id: installer
+    attributes:
+      label: Installer file name
+      placeholder: CitrixWorkspaceApp.exe
+  - type: dropdown
+    id: engine
+    attributes:
+      label: Installer engine (if you know it)
+      options:
+        - Not sure
+        - MSI
+        - WiX Burn
+        - Inno Setup
+        - NSIS
+        - InstallShield
+        - Advanced Installer
+        - MSIX / AppX
+        - Squirrel
+        - Custom EXE
+        - Self-extractor (7-Zip / WinRAR)
+  - type: textarea
+    id: install
+    attributes:
+      label: Silent install command that actually worked
+      placeholder: CitrixWorkspaceApp.exe /silent /noreboot
+      render: shell
+    validations:
+      required: true
+  - type: textarea
+    id: uninstall
+    attributes:
+      label: Silent uninstall command (optional)
+      render: shell
+  - type: dropdown
+    id: verified
+    attributes:
+      label: How did you verify it?
+      options:
+        - Ran it in a VM / Windows Sandbox
+        - Vendor documentation
+        - The installer's own /? output
+        - Used it in production
+    validations:
+      required: true
+  - type: textarea
+    id: notes
+    attributes:
+      label: Gotchas / notes
+      placeholder: Mandatory KEYCODE=, running-instance check, reboot behavior, where it installs, etc.
+  - type: input
+    id: source
+    attributes:
+      label: Source link (vendor doc, forum thread, etc.)

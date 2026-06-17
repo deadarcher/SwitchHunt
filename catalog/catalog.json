@@ -1,0 +1,347 @@
+{
+  "_comment": "GENERATED from src/lib/catalog.ts by scripts/gen-catalog.ts - do not hand-edit. Regenerate: npm run gen:catalog",
+  "count": 31,
+  "entries": [
+    {
+      "name": "Citrix Workspace",
+      "match": {
+        "product": "citrix (workspace|receiver)",
+        "file": "citrix.?workspace|citrixreceiver"
+      },
+      "install": "{file} /silent /noreboot",
+      "uninstall": "{file} /silent /uninstall",
+      "detect": null,
+      "note": "Self-extracting; the switches live in the inner bootstrapper. Add /includeSSON for pass-through SSO, and ADDLOCAL=\"ReceiverInside,ICA_Client,USB,DesktopViewer,WebHelper\" to pick components."
+    },
+    {
+      "name": "Microsoft Teams (classic machine-wide)",
+      "match": {
+        "product": "teams machine-wide|microsoft teams",
+        "file": "Teams_windows|teams.*x64\\.msi"
+      },
+      "install": "msiexec /i \"{file}\" /qn ALLUSERS=1 OPTIONS=\"noAutoStart=true\"",
+      "uninstall": null,
+      "detect": null,
+      "note": "The machine-wide MSI only PROVISIONS a per-user install at each logon. New Teams uses teamsbootstrapper.exe -p instead."
+    },
+    {
+      "name": "AnyDesk",
+      "match": {
+        "product": "anydesk",
+        "file": "anydesk"
+      },
+      "install": "{file} --install \"C:\\Program Files (x86)\\AnyDesk\" --start-with-win --create-shortcuts --silent",
+      "uninstall": "\"C:\\Program Files (x86)\\AnyDesk\\AnyDesk.exe\" --remove --silent",
+      "detect": null,
+      "note": "Custom CLI (not MSI-style). --install REQUIRES the target folder as an argument."
+    },
+    {
+      "name": "Docker Desktop",
+      "match": {
+        "product": "docker desktop",
+        "file": "Docker Desktop Installer"
+      },
+      "install": "\"{file}\" install --quiet --accept-license",
+      "uninstall": "\"{file}\" uninstall --quiet",
+      "detect": null,
+      "note": "Sub-command style (install/uninstall as a verb, not a slash flag). --accept-license is required for unattended."
+    },
+    {
+      "name": "Adobe Acrobat Reader",
+      "match": {
+        "product": "adobe acrobat reader",
+        "file": "AcroRdr|Reader.*DC|AcroRead"
+      },
+      "install": "{file} /sAll /rs /msi EULA_ACCEPT=YES",
+      "uninstall": null,
+      "detect": null,
+      "note": "/sAll silent, /rs suppress reboot, /msi forwards the rest to the inner MSI. EULA_ACCEPT=YES is mandatory."
+    },
+    {
+      "name": "CrowdStrike Falcon Sensor",
+      "match": {
+        "product": "crowdstrike|falcon sensor",
+        "file": "WindowsSensor|FalconSensor"
+      },
+      "install": "{file} /install /quiet /norestart CID=<your-CID>",
+      "uninstall": null,
+      "detect": null,
+      "note": "CID (customer ID + checksum) is REQUIRED — without it the sensor installs but never registers."
+    },
+    {
+      "name": "Python",
+      "match": {
+        "product": "^python \\d",
+        "file": "python-3\\.\\d"
+      },
+      "install": "{file} /quiet InstallAllUsers=1 PrependPath=1",
+      "uninstall": null,
+      "detect": null,
+      "note": "Custom bootstrapper; properties are bare NAME=value (no slash). Add Include_test=0 to skip the test suite."
+    },
+    {
+      "name": "Visual Studio Code",
+      "match": {
+        "product": "visual studio code",
+        "file": "VSCode.*Setup"
+      },
+      "install": "{file} /VERYSILENT /MERGETASKS=!runcode",
+      "uninstall": null,
+      "detect": null,
+      "note": "Inno Setup. /MERGETASKS=!runcode stops it launching after install; add addcontextmenufiles,addtopath for shell integration + PATH."
+    },
+    {
+      "name": "Git for Windows",
+      "match": {
+        "product": "^git\\b",
+        "file": "Git-\\d.*64-bit"
+      },
+      "install": "{file} /VERYSILENT /NORESTART",
+      "uninstall": null,
+      "detect": null,
+      "note": "Inno Setup. Use /LOADINF=\"config.inf\" to preset components/options (record one with /SAVEINF)."
+    },
+    {
+      "name": "Zoom",
+      "match": {
+        "product": "^zoom",
+        "file": "Zoom.*\\.msi|ZoomInstallerFull"
+      },
+      "install": "msiexec /i \"{file}\" /qn ZoomAutoUpdate=\"true\"",
+      "uninstall": null,
+      "detect": null,
+      "note": "Use the MSI (not the per-user exe) for fleet deploys; pass ZConfig/ZoomAutoUpdate properties for config."
+    },
+    {
+      "name": "Oracle VM VirtualBox",
+      "match": {
+        "product": "virtualbox",
+        "file": "VirtualBox.*Win"
+      },
+      "install": "{file} --silent --ignore-reboot",
+      "uninstall": null,
+      "detect": null,
+      "note": "Qt-based custom installer. --silent + --ignore-reboot; the network-driver install can still prompt unless the Oracle cert is pre-trusted in the cert store."
+    },
+    {
+      "name": "Wireshark",
+      "match": {
+        "product": "wireshark",
+        "file": "Wireshark.*win"
+      },
+      "install": "{file} /S /desktopicon=yes",
+      "uninstall": null,
+      "detect": null,
+      "note": "NSIS. Bundles Npcap, which runs its own installer — add /quiet and let it through."
+    },
+    {
+      "name": "TeamViewer (Host)",
+      "match": {
+        "product": "teamviewer",
+        "file": "TeamViewer.*Setup|TeamViewer_Host"
+      },
+      "install": "{file} /S",
+      "uninstall": null,
+      "detect": null,
+      "note": "Add APITOKEN=<token> CUSTOMCONFIGID=<id> ASSIGNMENTOPTIONS=\"...\" to auto-assign the Host to your account."
+    },
+    {
+      "name": "GlobalProtect (Palo Alto VPN)",
+      "match": {
+        "product": "globalprotect",
+        "file": "GlobalProtect"
+      },
+      "install": "msiexec /i \"{file}\" /qn PORTAL=\"vpn.company.com\"",
+      "uninstall": null,
+      "detect": null,
+      "note": "PORTAL= preconfigures the gateway so users aren't prompted."
+    },
+    {
+      "name": "Microsoft 365 Apps / Office",
+      "match": {
+        "product": "microsoft 365|office 365|microsoft office",
+        "file": "OfficeSetup|OfficeDeploymentTool"
+      },
+      "install": "{file} /configure config.xml",
+      "uninstall": null,
+      "detect": null,
+      "note": "Office has NO plain silent switch — it installs via the Office Deployment Tool (setup.exe) driven by a config.xml. Author the XML at config.office.com (channel, bitness, apps, language), ship it next to setup.exe. \"{file} /download config.xml\" pre-stages the bits first."
+    },
+    {
+      "name": "Adobe Acrobat (Pro / Standard)",
+      "match": {
+        "product": "adobe acrobat(?! reader)|acrobat pro|acrobat dc",
+        "file": "Acrobat(?!.*Reader)|AcroPro"
+      },
+      "install": "{file} /sAll /rs /msi EULA_ACCEPT=YES",
+      "uninstall": null,
+      "detect": null,
+      "note": "Same flags as Reader (/sAll silent, /rs suppress reboot, /msi forwards to the inner MSI; EULA_ACCEPT=YES mandatory). Volume licensing comes from the package built in the Adobe Admin Console, not a command-line key."
+    },
+    {
+      "name": "Foxit PDF Editor",
+      "match": {
+        "product": "foxit",
+        "file": "Foxit.*(Setup|Editor)|FoxitPDFEditor"
+      },
+      "install": "msiexec /i \"{file}\" /qn /norestart KEYCODE=<your-volume-key>",
+      "uninstall": null,
+      "detect": null,
+      "note": "KEYCODE= (your volume license) is REQUIRED to activate — without it it installs as an unlicensed trial. Add MAKEDEFAULT=0 so it doesn't grab the PDF association."
+    },
+    {
+      "name": "Nitro PDF Pro",
+      "match": {
+        "product": "nitro (pdf )?pro|nitro pdf",
+        "file": "Nitro.*(Pro|PDF)"
+      },
+      "install": "msiexec /i \"{file}\" /qn /norestart SERIALNUMBER=<your-key>",
+      "uninstall": null,
+      "detect": null,
+      "note": "SERIALNUMBER= is REQUIRED to activate; without it you get trial mode."
+    },
+    {
+      "name": "TechSmith Snagit",
+      "match": {
+        "product": "snagit",
+        "file": "snagit"
+      },
+      "install": "msiexec /i \"{file}\" /qn TSC_SOFTWARE_KEY=<your-key>",
+      "uninstall": null,
+      "detect": null,
+      "note": "TSC_SOFTWARE_KEY= the software key. TechSmith's Deployment Tool emits an .mst — apply it with TRANSFORMS=\"snagit.mst\" to also kill auto-update + the welcome screen."
+    },
+    {
+      "name": "Webroot SecureAnywhere",
+      "match": {
+        "product": "webroot",
+        "file": "wsainstall|webroot"
+      },
+      "install": "{file} /key=<your-keycode> /silent",
+      "uninstall": null,
+      "detect": null,
+      "note": "Tiny stub installer; /key= (your 20-char keycode) is REQUIRED to register the endpoint, /silent suppresses UI. Add /lockautouninstall=<password> to require a password to remove it."
+    },
+    {
+      "name": "RustDesk",
+      "match": {
+        "product": "rustdesk",
+        "file": "rustdesk"
+      },
+      "install": "{file} --silent-install",
+      "uninstall": "{file} --uninstall",
+      "detect": null,
+      "note": "Custom double-dash CLI (not MSI-style). --silent-install installs + registers the service. Drop a RustDesk2.toml beside the exe to preconfigure the relay/key."
+    },
+    {
+      "name": "ESET Endpoint Security",
+      "match": {
+        "product": "eset",
+        "file": "ees_|eea_|eset"
+      },
+      "install": "msiexec /i \"{file}\" /qn /norestart",
+      "uninstall": null,
+      "detect": null,
+      "note": "Bare MSI installs the client but it won't be MANAGED — for unattended enrollment layer the ESET PROTECT config (a generated .mst / install_config.ini) via TRANSFORMS=. A reboot is usually required."
+    },
+    {
+      "name": "Google Chrome (Enterprise)",
+      "match": {
+        "product": "^google chrome$",
+        "file": "googlechrome.*enterprise|chrome.*enterprise"
+      },
+      "install": "msiexec /i \"{file}\" /qn /norestart",
+      "uninstall": null,
+      "detect": null,
+      "note": "Use the Enterprise MSI, not the consumer stub exe, for fleet deploys."
+    },
+    {
+      "name": "Mozilla Firefox",
+      "match": {
+        "product": "mozilla firefox",
+        "file": "Firefox.*Setup"
+      },
+      "install": "{file} /S",
+      "uninstall": "\"%ProgramFiles%\\Mozilla Firefox\\uninstall\\helper.exe\" /S",
+      "detect": "C:\\Program Files\\Mozilla Firefox\\firefox.exe",
+      "note": "NSIS. Drop a policies.json / use the MSI for managed settings."
+    },
+    {
+      "name": "7-Zip",
+      "match": {
+        "product": "^7-zip",
+        "file": "7z\\d.*\\.exe"
+      },
+      "install": "{file} /S",
+      "uninstall": "\"%ProgramFiles%\\7-Zip\\Uninstall.exe\" /S",
+      "detect": "C:\\Program Files\\7-Zip\\7zFM.exe",
+      "note": null
+    },
+    {
+      "name": "Notepad++",
+      "match": {
+        "product": "notepad\\+\\+",
+        "file": "npp\\..*Installer"
+      },
+      "install": "{file} /S /allusers",
+      "uninstall": "\"%ProgramFiles%\\Notepad++\\uninstall.exe\" /S",
+      "detect": "C:\\Program Files\\Notepad++\\notepad++.exe",
+      "note": "NSIS. /allusers installs machine-wide (HKLM, Program Files); drop it for a per-user install."
+    },
+    {
+      "name": "VLC media player",
+      "match": {
+        "product": "vlc media player",
+        "file": "vlc-.*win"
+      },
+      "install": "{file} /S",
+      "uninstall": "\"%ProgramFiles%\\VideoLAN\\VLC\\uninstall.exe\" /S",
+      "detect": "C:\\Program Files\\VideoLAN\\VLC\\vlc.exe",
+      "note": null
+    },
+    {
+      "name": "WinRAR",
+      "match": {
+        "product": "^winrar",
+        "file": "winrar|wrar\\d"
+      },
+      "install": "{file} /S",
+      "uninstall": "\"%ProgramFiles%\\WinRAR\\uninstall.exe\" /S",
+      "detect": "C:\\Program Files\\WinRAR\\WinRAR.exe",
+      "note": null
+    },
+    {
+      "name": "OBS Studio",
+      "match": {
+        "product": "obs studio",
+        "file": "OBS-Studio|obs-studio"
+      },
+      "install": "{file} /S",
+      "uninstall": "\"%ProgramFiles%\\obs-studio\\uninstall.exe\" /S",
+      "detect": "C:\\Program Files\\obs-studio\\bin\\64bit\\obs64.exe",
+      "note": "NSIS."
+    },
+    {
+      "name": "GIMP",
+      "match": {
+        "product": "^gimp",
+        "file": "gimp.*setup"
+      },
+      "install": "{file} /VERYSILENT /NORESTART",
+      "uninstall": null,
+      "detect": null,
+      "note": "Inno Setup."
+    },
+    {
+      "name": "Node.js",
+      "match": {
+        "product": "node\\.js",
+        "file": "node-v.*\\.msi"
+      },
+      "install": "msiexec /i \"{file}\" /qn /norestart",
+      "uninstall": null,
+      "detect": null,
+      "note": null
+    }
+  ]
+}

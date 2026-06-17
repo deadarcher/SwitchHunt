@@ -1,0 +1,46 @@
+---
+/**
+ * Minimal HTML shell for SwitchHunt. The tool is a single client-side page, so this is
+ * deliberately tiny: design tokens via global.css, basic SEO/OG meta, a slot for the page.
+ */
+import '../styles/global.css';
+
+interface Props {
+  title?: string;
+  description?: string;
+}
+
+const {
+  title = "SwitchHunt — find any Windows installer's silent-install switches",
+  description =
+    'Drop a Windows installer (MSI/EXE) in your browser and get its silent-install command. ' +
+    'Detects MSI, Inno, NSIS, WiX Burn, InstallShield, Advanced Installer, MSIX and more. ' +
+    '100% client-side — the file never leaves your machine. Free, no signup.',
+} = Astro.props;
+---
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="generator" content={Astro.generator} />
+
+  <title>{title}</title>
+  <meta name="description" content={description} />
+
+  <meta property="og:type" content="website" />
+  <meta property="og:title" content={title} />
+  <meta property="og:description" content={description} />
+  <meta property="og:site_name" content="SwitchHunt" />
+  <meta name="twitter:card" content="summary" />
+  <meta name="twitter:title" content={title} />
+  <meta name="twitter:description" content={description} />
+
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+</head>
+<body>
+  <slot />
+</body>
+</html>

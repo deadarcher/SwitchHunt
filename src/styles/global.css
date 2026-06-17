@@ -1,0 +1,76 @@
+/*
+ * Design tokens + base styles for SwitchHunt. Same palette as getrff.com so the tool
+ * looks identical whether you run it here or use the hosted instance. Tokens are CSS
+ * custom properties; component/page styles reference them with var(--brand) etc.
+ */
+
+@import url('https://fonts.googleapis.com/css2?family=Inter+Tight:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap');
+
+:root {
+  /* Surfaces */
+  --bg:             #FAFAF7;
+  --surface:        #FFFFFF;
+  --surface-hover:  #F5F4F0;
+  --surface-alt:    #F2F0E8;
+
+  /* Text */
+  --ink:            #13111C;
+  --ink-2:          rgba(19, 17, 28, 0.7);
+  --ink-3:          rgba(19, 17, 28, 0.5);
+  --ink-4:          rgba(19, 17, 28, 0.35);
+
+  /* Borders */
+  --border:         rgba(19, 17, 28, 0.08);
+  --border-strong:  rgba(19, 17, 28, 0.15);
+
+  /* Brand */
+  --brand:          #5E42D6;
+  --brand-light:    #7C5CFF;
+  --brand-bg:       #F2EEFF;
+  --brand-bg-strong: rgba(124, 92, 255, 0.12);
+  --brand-border:   rgba(124, 92, 255, 0.3);
+
+  /* Status */
+  --success:        #3DAA6E;
+  --success-bg:     #E8F5EE;
+  --warning:        #D97706;
+  --warning-bg:     #FEF3E2;
+  --danger:         #DC2626;
+  --danger-bg:      rgba(220, 38, 38, 0.08);
+
+  /* Accent */
+  --heat:           #FF7A45;
+
+  /* Dark panel (code blocks) */
+  --dark-bg:        #13111C;
+  --dark-surface:   #1E1B2E;
+  --dark-ink:       #EDEAF5;
+  --dark-ink-2:     rgba(237, 234, 245, 0.65);
+  --dark-ink-3:     rgba(237, 234, 245, 0.5);
+  --dark-border:    rgba(237, 234, 245, 0.12);
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  padding: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: 'Inter Tight', -apple-system, system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+a { color: inherit; text-decoration: none; }
+img, svg { display: block; max-width: 100%; }
+::selection { background: var(--brand-light); color: white; }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
