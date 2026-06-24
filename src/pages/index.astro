@@ -506,11 +506,18 @@ const description =
     font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 11px; letter-spacing: 0.06em;
     text-transform: uppercase; color: var(--ink-4); cursor: pointer; padding: 6px 0;
   }
-  #result .all-props table { width: 100%; border-collapse: collapse; margin-top: 6px; font-size: 12.5px; }
+  #result .all-props table {
+    width: 100%; table-layout: fixed; border-collapse: collapse; margin-top: 6px; font-size: 12.5px;
+  }
   #result .all-props td {
     padding: 4px 10px 4px 0; vertical-align: top; border-top: 1px solid var(--border); color: var(--ink-2);
+    /* Long, space-less values (e.g. SecureCustomProperties — a ;-delimited list) must wrap inside the
+       cell instead of forcing the table wider than the page. `anywhere` (not break-word) also shrinks
+       the column's min-content, so the fixed-layout table stays within .wrap. */
+    overflow-wrap: anywhere;
   }
-  #result .all-props td:first-child { white-space: nowrap; }
+  /* Property names are short identifiers; a fixed first column keeps the value column from blowing out. */
+  #result .all-props td:first-child { width: 38%; }
   #result .all-props td code { font-family: 'JetBrains Mono', ui-monospace, monospace; color: var(--ink); }
   #result .secret-tag {
     margin-left: 6px; font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 9px;
@@ -819,30 +826,10 @@ const description =
       root.append(ul);
     }
 
-    // Uninstall-replay warning + ready command
-    const uh = document.createElement('div');
-    uh.className = 'lbl';
-    uh.textContent = 'Uninstall — replay these properties';
-    root.append(uh);
-
-    const note = document.createElement('p');
-    note.className = 'notes';
-    if (a.uninstallReplay.length) {
-      note.textContent =
-        `MSI properties don't persist past install — on /x, deferred custom actions re-run with the ` +
-        `package's authored defaults, not your install-time values. If you set these at install, pass ` +
-        `them again at uninstall: ${a.uninstallReplay.join(', ')}.` +
-        (a.registryRecovery
-          ? ' (This MSI uses AppSearch/RegLocator, so some values may be recovered from the registry.)'
-          : '');
-    } else {
-      note.textContent = "No install-time properties appear to be consumed by uninstall custom actions.";
-    }
-    root.append(note);
-    root.append(makeCmdBlock('Uninstall (with replayed properties)', a.uninstallCommand));
-
-    // Full property dump — expanded by default so nothing's hidden, unless the list is long (50+),
-    // in which case collapse it and point the user there in case the tiered list missed their switch.
+    // Full property dump — the source of truth. Placed right under the curated "likely needed" list
+    // so it's reachable without scrolling past the uninstall command. Expanded by default so nothing's
+    // hidden, unless the list is long (50+), in which case collapse it and point the user there in case
+    // the tiered list missed their switch.
     const collapsed = a.properties.length >= 50;
     if (collapsed) {
       const hint = document.createElement('p');
@@ -880,6 +867,28 @@ const description =
     }
     details.append(table);
     root.append(details);
+
+    // Uninstall-replay warning + ready command — the action, kept last in the MSI block.
+    const uh = document.createElement('div');
+    uh.className = 'lbl';
+    uh.textContent = 'Uninstall — replay these properties';
+    root.append(uh);
+
+    const note = document.createElement('p');
+    note.className = 'notes';
+    if (a.uninstallReplay.length) {
+      note.textContent =
+        `MSI properties don't persist past install — on /x, deferred custom actions re-run with the ` +
+        `package's authored defaults, not your install-time values. If you set these at install, pass ` +
+        `them again at uninstall: ${a.uninstallReplay.join(', ')}.` +
+        (a.registryRecovery
+          ? ' (This MSI uses AppSearch/RegLocator, so some values may be recovered from the registry.)'
+          : '');
+    } else {
+      note.textContent = "No install-time properties appear to be consumed by uninstall custom actions.";
+    }
+    root.append(note);
+    root.append(makeCmdBlock('Uninstall (with replayed properties)', a.uninstallCommand));
   }
 
   // ── command builder ───────────────────────────────────────────────────────
