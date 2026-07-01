@@ -2,7 +2,7 @@
 dist/
 .astro/
 
-# Claude Code local config (attribution disabled) — never publish this in the public repo
+# Claude Code local config (attribution disabled) - never publish this in the public repo
 .claude/
 
 # deps

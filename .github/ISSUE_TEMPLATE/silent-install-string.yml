@@ -6,7 +6,7 @@ body:
   - type: markdown
     attributes:
       value: |
-        Thanks for feeding the catalog! Fill in what you know — the gotchas are the most valuable part.
+        Thanks for feeding the catalog! Fill in what you know - the gotchas are the most valuable part.
         Please only submit commands you've **actually run**, or that come from the vendor's own docs.
   - type: input
     id: app

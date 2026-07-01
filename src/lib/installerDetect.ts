@@ -2,13 +2,13 @@
  * Client-side Windows-installer identifier.
  *
  * Runs ENTIRELY in the browser: the page reads the chosen file into an ArrayBuffer and
- * hands the raw bytes here — nothing is ever uploaded. Given those bytes, this sniffs the
+ * hands the raw bytes here - nothing is ever uploaded. Given those bytes, this sniffs the
  * installer ENGINE by signature (MSI / Inno / NSIS / WiX Burn / InstallShield / SFX) and
  * returns the canonical command set for that engine.
  *
- * Static identification only — it NEVER executes the installer. For the deterministic
+ * Static identification only - it NEVER executes the installer. For the deterministic
  * engines (MSI / Inno / WiX Burn) the switches are the engine's documented flags and are
- * effectively always correct — and they're engine built-ins, so we can hand back the FULL
+ * effectively always correct - and they're engine built-ins, so we can hand back the FULL
  * operation matrix (install / repair / uninstall / layout), not just the silent-install pair.
  * For NSIS / InstallShield / SFX it's best-effort with caveats, because those leave silent
  * support partly up to the author. Unknown/packed EXEs fall through to a "here's how to find
@@ -65,7 +65,7 @@ export interface DetectionResult {
   fileName?: string;
   /** Authoring-tool version read from the binary, e.g. "Advanced Installer 21.8.2". */
   engineVersion?: string;
-  /** Custom public property NAMES harvested from the binary (Advanced Installer) — names only. */
+  /** Custom public property NAMES harvested from the binary (Advanced Installer) - names only. */
   customProperties?: string[];
   /** Deep MSI analysis (property matrix + uninstall-replay), present only for MSI packages. */
   msi?: MsiAnalysis;
@@ -98,7 +98,7 @@ function startsWith(hay: Uint8Array, sig: number[]): boolean {
   return true;
 }
 
-/** UTF-16LE byte pattern for an ASCII string — used to find version-info keys. */
+/** UTF-16LE byte pattern for an ASCII string - used to find version-info keys. */
 function utf16(s: string): number[] {
   const out: number[] = [];
   for (let i = 0; i < s.length; i++) { out.push(s.charCodeAt(i) & 0xff, 0x00); }
@@ -249,7 +249,7 @@ function isCustomProp(n: string): boolean {
  * Even though the MSI itself is compressed, the property names leak into the bootstrapper's string
  * data as MSI Formatted refs `[PROP]` (clean `[ ]` delimiters) and AI's `<PROP>_Set`/`_SetDefault`
  * custom-action names. We harvest both (ASCII + UTF-16LE), filter AI/MSI internals, and dedupe.
- * Bounded to the front of the file — PE code/resources live there; the appended payload doesn't.
+ * Bounded to the front of the file - PE code/resources live there; the appended payload doesn't.
  */
 function readAdvancedInstaller(bytes: Uint8Array): { version?: string; switches: string[]; customProperties: string[] } {
   const cap = Math.min(bytes.length, 48 << 20);
@@ -273,7 +273,7 @@ function readAdvancedInstaller(bytes: Uint8Array): { version?: string; switches:
 
 // ── best-effort switch harvest (opt-in, for custom/unrecognized installers) ──
 // Known silent-install flag tokens to look for verbatim (boundary-checked, so binary garbage
-// doesn't produce false hits). Longer, distinctive tokens only — no bare /s /q.
+// doesn't produce false hits). Longer, distinctive tokens only - no bare /s /q.
 const BEST_FLAGS = [
   'silent', 'verysilent', 'quiet', 'unattended', 'passive', 'norestart', 'noreboot',
   '/silent', '/verysilent', '/quiet', '/qn', '/qb', '/passive', '/norestart', '/exenoui',
@@ -283,7 +283,7 @@ const BEST_FLAGS = [
 const OPT_KW = /(server|port|hostname|host|username|password|silent|unattended|uninstall|install|datadir|directory|path|url|ipaddress|address|account|mode|token|secret|license|proxy|timeout|reboot|norestart|quiet|registry|subkey|service|config|sync|certificate|database|endpoint|apikey|apiurl)/i;
 
 /**
- * Best-effort, NOISY harvest of candidate switches from ANY binary — for the custom/unrecognized
+ * Best-effort, NOISY harvest of candidate switches from ANY binary - for the custom/unrecognized
  * long tail where there's no structural marker. Pulls known flag tokens + identifiers that look like
  * config options (+ the MSI [PROP]/`_Set` signals). Expect false positives; this is an opt-in "try
  * anyway", not the authoritative read. Names only.
@@ -303,12 +303,12 @@ export function bestEffortSwitches(buf: ArrayBuffer): { flags: string[]; options
     try { if (new RegExp(lead + esc + '(?![\\w])', 'i').test(text)) flags.add(tok); } catch { /* ignore */ }
   }
 
-  // Harvest option candidates from the UTF-16 (#US) literals only — that's where the app's own
+  // Harvest option candidates from the UTF-16 (#US) literals only - that's where the app's own
   // strings (CLI args, UI labels) live; the BCL type / P-Invoke names sit in the ASCII metadata
   // heap, so wide-only cuts most framework noise. Then drop verb-prefixed method names.
   const VERB = /^(Get|Set|On|Create|Enumerate|Adjust|Bind|Bound|Detect|Handle|Execute|Apply|Is|Has|Should|Can|Validate|Render|Update|Initialize|Convert|Format|Parse|Load|Save|Read|Write|Add|Remove|Open|Close|Show|Hide|Enable|Disable|Allowed|Denied)/;
   // A real option name is COMPOUND: underscore'd (SERVER_ADDRESS) or multi-word PascalCase
-  // (KeystoneServerIpAddress, HostFile) — this drops generic single-word fragments (Server, port,
+  // (KeystoneServerIpAddress, HostFile) - this drops generic single-word fragments (Server, port,
   // install) and all-lowercase duplicates, which are the bulk of the noise.
   const compound = (id: string): boolean =>
     id.includes('_') || ((id.match(/[A-Z]/g) ?? []).length >= 2 && id !== id.toUpperCase());
@@ -340,12 +340,12 @@ export function detectInstaller(buf: ArrayBuffer, fileName?: string): DetectionR
 
   // 1) MSI / OLE compound document
   if (startsWith(bytes, SIG.cfb)) {
-    // Deep-parse the MSI database (property matrix + uninstall-replay). Never throws out — a
+    // Deep-parse the MSI database (property matrix + uninstall-replay). Never throws out - a
     // parse failure just falls back to the generic file-path commands below.
     let analysis: MsiAnalysis | null = null;
     try { analysis = analyzeMsi(buf); } catch { analysis = null; }
     const code = analysis?.productCode;
-    // Prefer the real ProductCode GUID for repair/uninstall — it works regardless of the .msi's path.
+    // Prefer the real ProductCode GUID for repair/uninstall - it works regardless of the .msi's path.
     const byCode = (op: string) => (code ? `msiexec ${op} ${code} /qn /norestart` : `msiexec ${op} "${msi}" /qn /norestart`);
 
     return {
@@ -362,8 +362,8 @@ export function detectInstaller(buf: ArrayBuffer, fileName?: string): DetectionR
         'PROP=VALUE public properties (e.g. INSTALLDIR="C:\\Apps")',
       confidence: 'high',
       notes:
-        'MSI silent install is ALWAYS /qn — no guessing. /a is an administrative install (unpacks the ' +
-        'payload to a network point — the MSI equivalent of a layout). Repair flags can be tuned ' +
+        'MSI silent install is ALWAYS /qn - no guessing. /a is an administrative install (unpacks the ' +
+        'payload to a network point - the MSI equivalent of a layout). Repair flags can be tuned ' +
         '(/fa reinstalls all files, /fvomus forces a full repair). (.msp patches install with /p; ' +
         '.mst transforms apply via TRANSFORMS=.)',
       // Property-table metadata is authoritative for an MSI; the PE version-resource heuristic
@@ -376,7 +376,7 @@ export function detectInstaller(buf: ArrayBuffer, fileName?: string): DetectionR
     };
   }
 
-  // MSIX / AppX — a ZIP package (not a PE); installs via PowerShell/DISM, not msiexec.
+  // MSIX / AppX - a ZIP package (not a PE); installs via PowerShell/DISM, not msiexec.
   if (startsWith(bytes, SIG.zip) && (has(bytes, SIG.appxManifest) || has(bytes, SIG.appxBundle))) {
     const pkg = fileName ?? 'app.msix';
     return {
@@ -388,12 +388,12 @@ export function detectInstaller(buf: ArrayBuffer, fileName?: string): DetectionR
         { label: 'Uninstall',                     cmd: 'Get-AppxPackage *<Name>* | Remove-AppxPackage' },
       ],
       modifiers:
-        'PowerShell-native — there is no /qn. Per-user: Add-AppxPackage. All-users / image: ' +
+        'PowerShell-native - there is no /qn. Per-user: Add-AppxPackage. All-users / image: ' +
         'Add-AppxProvisionedPackage -Online (add -LicensePath for a licensed bundle, or -SkipLicense to ' +
         'stage without one). DISM equivalent: dism /online /add-provisionedappxpackage /packagepath:"…".',
       confidence: 'high',
       notes:
-        'MSIX/AppX is a signed, ZIP-based package — it installs through PowerShell (or DISM), not msiexec, ' +
+        'MSIX/AppX is a signed, ZIP-based package - it installs through PowerShell (or DISM), not msiexec, ' +
         'so there is no silent switch; the cmdlets are inherently non-interactive. Add-AppxPackage installs ' +
         'for the current user; Add-AppxProvisionedPackage -Online stages it for all users + new profiles ' +
         '(the fleet-deploy path). The package must be code-signed and trusted by the machine (or sideloading ' +
@@ -417,7 +417,7 @@ export function detectInstaller(buf: ArrayBuffer, fileName?: string): DetectionR
   }
 
   // Scope the version-string scan to the actual VS_VERSIONINFO blob (falls back to a whole-file
-  // scan only if the resource tree can't be walked) — see findVersionResource for why.
+  // scan only if the resource tree can't be walked) - see findVersionResource for why.
   const verBlob = findVersionResource(bytes) ?? bytes;
   const meta = {
     product: readVersionString(verBlob, 'ProductName'),
@@ -443,8 +443,8 @@ export function detectInstaller(buf: ArrayBuffer, fileName?: string): DetectionR
         '/log "C:\\out.log" (verbose log)',
       confidence: 'high',
       notes:
-        '/install is the default verb — you can drop it (/quiet /norestart alone installs), but it ' +
-        'reads clearer in a deploy script. /repair, /uninstall and /layout are Burn-engine built-ins — ' +
+        '/install is the default verb - you can drop it (/quiet /norestart alone installs), but it ' +
+        'reads clearer in a deploy script. /repair, /uninstall and /layout are Burn-engine built-ins - ' +
         'identical for every Burn bundle, not specific to this one. /layout copies the bundle + all ' +
         'payloads to a folder for redistribution. A Burn bootstrapper usually chains one or more MSIs ' +
         'internally.',
@@ -466,7 +466,7 @@ export function detectInstaller(buf: ArrayBuffer, fileName?: string): DetectionR
         '/SP- (skip the "this will install…" prompt) · /DIR="C:\\Path" · /LOG="C:\\out.log"',
       confidence: 'high',
       notes:
-        'Inno has no separate repair/layout verb — reinstalling over the top repairs. The generated ' +
+        'Inno has no separate repair/layout verb - reinstalling over the top repairs. The generated ' +
         'unins000.exe in the install dir is the uninstaller.',
     };
   }
@@ -481,7 +481,7 @@ export function detectInstaller(buf: ArrayBuffer, fileName?: string): DetectionR
         { label: 'Install (silent)',   cmd: `${exe} /S` },
         { label: 'Uninstall (silent)', cmd: '"%ProgramFiles%\\<App>\\Uninstall.exe" /S' },
       ],
-      modifiers: '/D=C:\\Path sets the target — it must be LAST and UNQUOTED, even with spaces in the path',
+      modifiers: '/D=C:\\Path sets the target - it must be LAST and UNQUOTED, even with spaces in the path',
       confidence: 'medium',
       notes:
         '/S is case-SENSITIVE. Silent support is technically author-optional, but the vast majority ' +
@@ -532,14 +532,14 @@ export function detectInstaller(buf: ArrayBuffer, fileName?: string): DetectionR
       notes:
         (ai.version ? `Read from this build: Advanced Installer ${ai.version}. ` : '') +
         'The switches above are the bootstrapper\'s own (detected in this binary); everything else ' +
-        'forwards to the embedded MSI — so /qn, /qb, /norestart, /l*v "log" and PROPERTY=VALUE all work. ' +
+        'forwards to the embedded MSI - so /qn, /qb, /norestart, /l*v "log" and PROPERTY=VALUE all work. ' +
         "Put EXE switches before the msiexec ones; uninstall with /x (or msiexec /x {ProductCode}). The " +
         "MSI's CUSTOM public properties (the package-specific switches) are compressed inside and can't be " +
-        'read here — run /extract and drop the resulting MSI back in for its full property list.',
+        'read here - run /extract and drop the resulting MSI back in for its full property list.',
     };
   }
 
-  // Squirrel.Windows (Electron / .NET desktop apps — Teams classic, Discord, …)
+  // Squirrel.Windows (Electron / .NET desktop apps - Teams classic, Discord, …)
   if (has(bytes, SIG.squirrel)) {
     return {
       ...meta,
@@ -550,11 +550,11 @@ export function detectInstaller(buf: ArrayBuffer, fileName?: string): DetectionR
         { label: 'Uninstall (silent)', cmd: '"%LocalAppData%\\<App>\\Update.exe" --uninstall -s' },
       ],
       modifiers:
-        '--silent suppresses the install flash. Squirrel is PER-USER (installs under %LocalAppData%) — ' +
+        '--silent suppresses the install flash. Squirrel is PER-USER (installs under %LocalAppData%) - ' +
         'there is no system-wide install, so fleet deploys must run it in the user context, not as SYSTEM.',
       confidence: 'medium',
       notes:
-        'Squirrel.Windows — common for Electron and .NET desktop apps. Setup.exe installs per-user to ' +
+        'Squirrel.Windows - common for Electron and .NET desktop apps. Setup.exe installs per-user to ' +
         '%LocalAppData%\\<App> and is mostly silent already; --silent hides the progress flash. Uninstall ' +
         "via the app's Update.exe --uninstall -s.",
     };
@@ -571,7 +571,7 @@ export function detectInstaller(buf: ArrayBuffer, fileName?: string): DetectionR
       confidence: 'medium',
       notes:
         "InstallAware native installer. /s runs silently using each dialog's default values; override them " +
-        'by passing the setup variables as command-line parameters (NAME="value") — no response file needed. ' +
+        'by passing the setup variables as command-line parameters (NAME="value") - no response file needed. ' +
         'If it wraps an MSI, msiexec options may also pass through.',
     };
   }
@@ -586,7 +586,7 @@ export function detectInstaller(buf: ArrayBuffer, fileName?: string): DetectionR
       modifiers: '--mode unattended (silent) · --unattendedmodeui none|minimal · --prefix "C:\\App" (dir) · --<optionname> <value> (prefilled answers)',
       confidence: 'medium',
       notes:
-        'BitRock/VMware InstallBuilder — common for cross-platform apps (PostgreSQL, Bitnami stacks). ' +
+        'BitRock/VMware InstallBuilder - common for cross-platform apps (PostgreSQL, Bitnami stacks). ' +
         '--mode unattended takes the configured defaults; preset answers with --<optionname> <value> ' +
         '(run --help to list them), and --unattendedmodeui none hides the progress bar.',
     };
@@ -599,17 +599,17 @@ export function detectInstaller(buf: ArrayBuffer, fileName?: string): DetectionR
       engine: 'wise',
       label: 'Wise Installation (legacy)',
       commands: [{ label: 'Install (silent)', cmd: `${exe} /s` }],
-      modifiers: '/s (silent) — Wise is CASE-SENSITIVE and finicky: if /s does nothing, try /S, or a recorded response file (setup.exe /s "C:\\resp.txt")',
+      modifiers: '/s (silent) - Wise is CASE-SENSITIVE and finicky: if /s does nothing, try /S, or a recorded response file (setup.exe /s "C:\\resp.txt")',
       confidence: 'low',
       notes:
-        'Wise Installation System — an old, discontinued engine. /s is the documented silent flag, but Wise ' +
+        'Wise Installation System - an old, discontinued engine. /s is the documented silent flag, but Wise ' +
         'is notoriously inconsistent: some builds need /S (uppercase), some need a recorded response file ' +
-        '(record with setup.exe /r). Test in a VM — and note many Wise setups wrap an MSI you can extract instead.',
+        '(record with setup.exe /r). Test in a VM - and note many Wise setups wrap an MSI you can extract instead.',
     };
   }
 
   // A .NET app that matched no known installer engine → a custom installer with bespoke switches.
-  // Require the _CorExeMain managed entry stub — NOT just the "mscoree.dll" string, which also
+  // Require the _CorExeMain managed entry stub - NOT just the "mscoree.dll" string, which also
   // appears in native self-extractors (e.g. Citrix's CAB bootstrapper) that merely bundle a CLR
   // component. A genuine 7-Zip SFX has a native stub too, so it falls through to the SFX branch.
   if (has(bytes, SIG.corExeMain)) {
@@ -621,7 +621,7 @@ export function detectInstaller(buf: ArrayBuffer, fileName?: string): DetectionR
       commands: [],
       confidence: 'low',
       notes:
-        "This is a .NET application that parses its OWN command-line switches — there's no universal " +
+        "This is a .NET application that parses its OWN command-line switches - there's no universal " +
         'silent flag. The switch names (often NAME=value pairs, plus a bare "silent") are defined in ' +
         "code and look identical to the app's other strings to a scanner, so they can't be read out " +
         'reliably. ' +
@@ -645,7 +645,7 @@ export function detectInstaller(buf: ArrayBuffer, fileName?: string): DetectionR
       confidence: 'medium',
       notes:
         '/S suppresses the WinRAR extractor dialog. Whatever it launches after extracting (the ' +
-        'INNER installer) has its own silent switch — identify that to be fully silent.',
+        'INNER installer) has its own silent switch - identify that to be fully silent.',
     };
   }
   if (has(bytes, SIG.sevenZip)) {
@@ -658,7 +658,7 @@ export function detectInstaller(buf: ArrayBuffer, fileName?: string): DetectionR
       confidence: 'low',
       notes:
         `Self-extracting 7-Zip archive${cfg ? ' (with an embedded SFX RunProgram config)' : ''}. ` +
-        "There's no universal silent switch — extract it (7-Zip ▸ Open archive, or `7z x file.exe`) " +
+        "There's no universal silent switch - extract it (7-Zip ▸ Open archive, or `7z x file.exe`) " +
         'to find the INNER installer, then use that engine’s silent flag.' +
         (cfg ? ' Its ;!@Install@! config block defines what runs after extraction.' : ''),
     };
@@ -672,7 +672,7 @@ export function detectInstaller(buf: ArrayBuffer, fileName?: string): DetectionR
     commands: [],
     confidence: 'none',
     notes:
-      "Couldn't identify the engine from static signatures — it's a custom or packed installer. " +
+      "Couldn't identify the engine from static signatures - it's a custom or packed installer. " +
       'Try common switches in a throwaway VM: /S, /silent, /quiet, /qn, /verysilent, /exenoui. ' +
       'Check the vendor docs, or extract it with 7-Zip to see if there’s an MSI inside. Found ' +
       'the switch? Add it to the community catalog so the next admin doesn’t have to dig.',

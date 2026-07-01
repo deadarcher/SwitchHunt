@@ -2,14 +2,14 @@
 import Layout from '../layouts/Layout.astro';
 import Logo from '../components/Logo.astro';
 
-const title = 'SwitchHunt — find any Windows installer’s silent-install switch';
+const title = 'SwitchHunt - find any Windows installer’s silent-install switch';
 const description =
   'Drop a Windows installer (MSI/EXE) and get its silent-install command. Detects MSI, Inno Setup, ' +
-  'NSIS, WiX Burn, InstallShield and SFX. Runs entirely in your browser — nothing is uploaded. Free.';
+  'NSIS, WiX Burn, InstallShield and SFX. Runs entirely in your browser - nothing is uploaded. Free.';
 ---
 
 <Layout title={title} description={description}>
-  <!-- Minimal header (no marketing nav) — keeps this tool page reading as a free standalone tool,
+  <!-- Minimal header (no marketing nav) - keeps this tool page reading as a free standalone tool,
        not a product landing page. The "Built by RFF" byline at the bottom carries the funnel. -->
   <header class="tool-nav">
     <a href="https://getrff.com" aria-label="RFF home"><Logo /></a>
@@ -20,11 +20,11 @@ const description =
     <p class="kicker">FREE TOOL</p>
     <h1>SwitchHunt</h1>
     <p class="sub">
-      <strong>What’s the silent install switch?</strong> Drop a Windows installer below — we read it <strong>in your browser</strong>, the file never
-      leaves your machine — identify the engine, and hand you the full command set: install, repair,
-      uninstall, extract, plus the modifier flags. Works on ~85% of installers — MSI, WiX Burn, Advanced
+      <strong>What’s the silent install switch?</strong> Drop a Windows installer below - we read it <strong>in your browser</strong>, the file never
+      leaves your machine - identify the engine, and hand you the full command set: install, repair,
+      uninstall, extract, plus the modifier flags. Works on ~85% of installers - MSI, WiX Burn, Advanced
       Installer, Inno, NSIS, InstallShield, InstallAware, BitRock, MSIX/AppX, Squirrel, Wise and
-      self-extractors — and a curated catalog for the painful vendor one-offs (Citrix, Teams, AnyDesk…).
+      self-extractors - and a curated catalog for the painful vendor one-offs (Citrix, Teams, AnyDesk…).
       The packed/custom long tail gets a best-effort switch harvest.
     </p>
 
@@ -44,10 +44,10 @@ const description =
     <section id="result" class="result" hidden>
       <header class="result-head">
         <div>
-          <div class="result-engine" id="r-engine">—</div>
+          <div class="result-engine" id="r-engine">-</div>
           <div class="result-file" id="r-file"></div>
         </div>
-        <span class="badge" id="r-confidence">—</span>
+        <span class="badge" id="r-confidence">-</span>
       </header>
 
       <!-- Known silent string from the curated catalog (hard-coded, NOT read from the file) -->
@@ -88,16 +88,16 @@ const description =
       <!-- Deployment artifacts (generated client-side). .intunewin is the hero path (self-contained,
            framework-free); the PSADT v4 wrapper is the secondary "if you already live in PSADT" option. -->
       <div id="r-deploy" hidden>
-        <p class="deploy-warn">⚠ Test the install command in a throwaway VM before you package or deploy it. These switches are detected/curated best-effort — a wrong one silently ships a broken package to every machine.</p>
+        <p class="deploy-warn">⚠ Test the install command in a throwaway VM before you package or deploy it. These switches are detected/curated best-effort - a wrong one silently ships a broken package to every machine.</p>
         <section class="deploy deploy-primary">
           <div class="deploy-head">
             <h3>📦 Build a .intunewin <span class="rec-badge">Recommended</span></h3>
-            <p class="deploy-why">Your installer + the silent command in one Intune-ready package — <strong>nothing else to install</strong>. No PSADT, no framework, no PowerShell-version gotchas. Built in your browser; the file never leaves your machine.</p>
+            <p class="deploy-why">Your installer + the silent command in one Intune-ready package - <strong>nothing else to install</strong>. No PSADT, no framework, no PowerShell-version gotchas. Built in your browser; the file never leaves your machine.</p>
           </div>
           <div id="r-intune-body"></div>
         </section>
         <details class="deploy deploy-secondary">
-          <summary>📦 PSADT v4 wrapper (.ps1) — only if your shop standardizes on PSADT</summary>
+          <summary>📦 PSADT v4 wrapper (.ps1) - only if your shop standardizes on PSADT</summary>
           <div id="r-psadt-body"></div>
         </details>
       </div>
@@ -128,7 +128,7 @@ const description =
     <section class="engines">
       <h2>What it detects</h2>
       <p class="engines-sub">
-        Built for the enterprise long tail — Advanced Installer, Citrix and the vendor one-offs whose silent
+        Built for the enterprise long tail - Advanced Installer, Citrix and the vendor one-offs whose silent
         switches you’d otherwise reverse-engineer in Orca or dig out of a forum thread. Drop any of them and
         you get the exact command (install, repair, uninstall, plus modifier flags). Deterministic engines
         are rock-solid; the rest come with caveats.
@@ -149,19 +149,19 @@ const description =
           <tr><td>7-Zip / WinRAR SFX</td><td>unwrap → inner installer</td><td><span class="ec ec-med">Medium</span></td></tr>
           <tr><td>Wise (legacy)</td><td><code>setup.exe /s</code> (case-finicky)</td><td><span class="ec ec-low">Low</span></td></tr>
           <tr><td>📚 Vendor one-offs (Citrix, Teams, AnyDesk…)</td><td>known silent string from the catalog</td><td><span class="ec ec-high">Curated</span></td></tr>
-          <tr><td>Custom / packed EXE</td><td>best-effort switch harvest</td><td><span class="ec ec-low">—</span></td></tr>
+          <tr><td>Custom / packed EXE</td><td>best-effort switch harvest</td><td><span class="ec ec-low">-</span></td></tr>
         </tbody>
       </table>
       <p class="engines-foot">
-        MSI packages also get a deep read — the full property table, a tiered “properties you likely need”
+        MSI packages also get a deep read - the full property table, a tiered “properties you likely need”
         list, and an uninstall-replay warning. When an installer seals its switches inside a compressed payload
         (Citrix, custom .NET, big vendor bundles), a curated catalog of hand-verified silent strings fills the
-        gap — and the truly custom EXEs we just can't crack, we say so rather than guess. <strong>That's where
+        gap - and the truly custom EXEs we just can't crack, we say so rather than guess. <strong>That's where
         you come in:</strong> I built this because I was sick of reverse-engineering installers in Orca, and
-        I've thrown every weird, vendor-cursed package I own at it — you've probably got one nastier. Drop the
+        I've thrown every weird, vendor-cursed package I own at it - you've probably got one nastier. Drop the
         installer that beats it (or the magic switches we miss) in an
         <a href="https://github.com/deadarcher/SwitchHunt/issues/new?template=silent-install-string.yml" target="_blank" rel="noopener">issue on the repo</a>
-        — the catalog only gets better with help, and I'm always happy to be proven wrong.
+        - the catalog only gets better with help, and I'm always happy to be proven wrong.
       </p>
     </section>
 
@@ -170,7 +170,7 @@ const description =
       <div class="info-col">
         <h2>Runs entirely in your browser</h2>
         <p>
-          The installer is parsed locally with JavaScript — no upload, no server, no storage, nothing
+          The installer is parsed locally with JavaScript - no upload, no server, no storage, nothing
           to leak. You can pull your network cable and it still works. Open DevTools and watch: zero
           requests leave the page.
         </p>
@@ -179,9 +179,9 @@ const description =
         <h2>What it can and can’t do</h2>
         <p>
           It identifies the installer <em>engine</em> by signature and returns that engine’s documented
-          command set — install, repair, uninstall, layout. It never runs the installer. Deterministic
+          command set - install, repair, uninstall, layout. It never runs the installer. Deterministic
           engines (MSI, WiX Burn, Advanced Installer, Inno, MSIX) are rock-solid; NSIS/InstallShield/
-          Squirrel/SFX come with caveats; truly custom EXEs it can’t crack — that’s what the community
+          Squirrel/SFX come with caveats; truly custom EXEs it can’t crack - that’s what the community
           catalog is for: a public, hand-verified set of known silent strings (and, for well-known apps,
           their real uninstall + detection), going live at
           <a href="https://github.com/deadarcher/SwitchHunt" target="_blank" rel="noopener">github.com/deadarcher/SwitchHunt</a>.
@@ -190,7 +190,7 @@ const description =
     </section>
 
     <p class="byline">
-      Built by <a href="/">RFF</a> — the deploy tool for admins who got tired of reverse-engineering
+      Built by <a href="/">RFF</a> - the deploy tool for admins who got tired of reverse-engineering
       installers in Orca. Pushing this to a fleet is the boring part <a href="/">RFF automates</a>.
     </p>
   </main>
@@ -378,7 +378,7 @@ const description =
     background: var(--warning-bg); border: 1px solid var(--warning);
     color: var(--ink-2); font-size: 12.5px; line-height: 1.5; text-wrap: pretty;
   }
-  /* .intunewin hero panel — the spotlighted, recommended path */
+  /* .intunewin hero panel - the spotlighted, recommended path */
   #result .deploy-primary {
     margin: 16px 0 0; border: 1.5px solid var(--brand); border-radius: 12px;
     background: var(--brand-bg); padding: 18px 18px 8px;
@@ -511,7 +511,7 @@ const description =
   }
   #result .all-props td {
     padding: 4px 10px 4px 0; vertical-align: top; border-top: 1px solid var(--border); color: var(--ink-2);
-    /* Long, space-less values (e.g. SecureCustomProperties — a ;-delimited list) must wrap inside the
+    /* Long, space-less values (e.g. SecureCustomProperties - a ;-delimited list) must wrap inside the
        cell instead of forcing the table wider than the page. `anywhere` (not break-word) also shrinks
        the column's min-content, so the fixed-layout table stays within .wrap. */
     overflow-wrap: anywhere;
@@ -537,7 +537,7 @@ const description =
            type PsadtInput, type PsadtOptions, type DetectionKind } from '../lib/psadt';
   import { buildIntuneWin } from '../lib/intunewin';
 
-  const MAX_BYTES = 1536 * 1024 * 1024; // 1.5 GB — refuse absurd files so the tab can't OOM
+  const MAX_BYTES = 1536 * 1024 * 1024; // 1.5 GB - refuse absurd files so the tab can't OOM
   // The in-browser .intunewin build holds several full copies of the file in tab memory
   // (read buffer + STORE zip + AES ciphertext + output), so peak RAM is ~4-5x the file size.
   // Cap it well below MAX_BYTES so packaging can't freeze/OOM the tab; bigger files → IntuneWinAppUtil.
@@ -580,7 +580,7 @@ const description =
       const old = btn.textContent;
       btn.textContent = 'Copied!';
       setTimeout(() => { btn.textContent = old; }, 1400);
-    } catch { /* clipboard blocked — ignore */ }
+    } catch { /* clipboard blocked - ignore */ }
   }
 
   /** Build a labeled command row with its own wired Copy button. */
@@ -629,7 +629,7 @@ const description =
     setTimeout(() => URL.revokeObjectURL(url), 1500);
   }
 
-  /** Like makeCmdBlock but no shell rewrite — for the Intune launcher commands (shell-agnostic). */
+  /** Like makeCmdBlock but no shell rewrite - for the Intune launcher commands (shell-agnostic). */
   function plainCmdBlock(label: string, text: string): HTMLDivElement {
     const block = document.createElement('div'); block.className = 'cmd-block';
     const lbl = document.createElement('div'); lbl.className = 'lbl'; lbl.textContent = label;
@@ -695,14 +695,14 @@ const description =
     const proot = $('r-psadt-body'); proot.innerHTML = '';
     const note = (t: string) => { const e = document.createElement('p'); e.className = 'notes'; e.textContent = t; return e; };
 
-    // ── Intune (.intunewin) — self-contained, no framework ──
+    // ── Intune (.intunewin) - self-contained, no framework ──
     const ib = document.createElement('button');
     ib.type = 'button'; ib.className = 'primary-btn'; ib.textContent = '⬇ Build .intunewin (in browser)';
     const status = document.createElement('span'); status.className = 'iw-status';
     ib.addEventListener('click', async () => {
       if (!lastBuf) return;
       if (lastBuf.byteLength > INTUNEWIN_MAX_BYTES) {
-        status.textContent = ` — this file is over ${(INTUNEWIN_MAX_BYTES / 1024 / 1024) | 0} MB; too big to package in a browser tab. Use Microsoft's IntuneWinAppUtil.exe for this one.`;
+        status.textContent = ` - this file is over ${(INTUNEWIN_MAX_BYTES / 1024 / 1024) | 0} MB; too big to package in a browser tab. Use Microsoft's IntuneWinAppUtil.exe for this one.`;
         return;
       }
       ib.disabled = true; const old = ib.textContent; ib.textContent = 'Packaging…'; status.textContent = '';
@@ -711,38 +711,38 @@ const description =
         downloadBytes((input.fileName.replace(/\.[^.]+$/, '') || 'package') + '.intunewin', out);
         status.textContent = ' ✓ built';
       } catch (e) {
-        status.textContent = ' — packaging failed: ' + (e as Error).message;
+        status.textContent = ' - packaging failed: ' + (e as Error).message;
       }
       ib.disabled = false; ib.textContent = old;
     });
     const ibRow = document.createElement('div'); ibRow.className = 'iw-row'; ibRow.append(ib, status);
-    iroot.append(note(`Packages installers up to ${(INTUNEWIN_MAX_BYTES / 1024 / 1024) | 0} MB. The whole package is built in your browser's memory (zip + AES-256 + HMAC), so larger files can be slow or run the tab out of memory — for those, use Microsoft's IntuneWinAppUtil.exe.`));
+    iroot.append(note(`Packages installers up to ${(INTUNEWIN_MAX_BYTES / 1024 / 1024) | 0} MB. The whole package is built in your browser's memory (zip + AES-256 + HMAC), so larger files can be slow or run the tab out of memory - for those, use Microsoft's IntuneWinAppUtil.exe.`));
     iroot.append(ibRow);
     // How to test the built package without an Intune tenant (Windows Sandbox + decoder).
     const test = document.createElement('details'); test.className = 'test-note';
     const testSum = document.createElement('summary'); testSum.textContent = 'How to test this without Intune';
     const testBody = document.createElement('div'); testBody.className = 'notes';
     testBody.innerHTML =
-      'The .intunewin is just your installer + the command, encrypted — Intune decrypts it and runs the command. ' +
-      'To check it yourself: <strong>(1) the real test</strong> — run the install command in a throwaway VM. ' +
+      'The .intunewin is just your installer + the command, encrypted - Intune decrypts it and runs the command. ' +
+      'To check it yourself: <strong>(1) the real test</strong> - run the install command in a throwaway VM. ' +
       '<strong>Windows Sandbox</strong> (free, built into Win10/11 Pro) is ideal: copy the installer in, run the ' +
-      'command, and confirm it installs silently and your detection rule is met. <strong>(2) verify the package</strong> — ' +
+      'command, and confirm it installs silently and your detection rule is met. <strong>(2) verify the package</strong> - ' +
       'decrypt it with <a href="https://github.com/okieselbach/Intune/tree/master/IntuneWinAppUtilDecoder" target="_blank" rel="noopener">IntuneWinAppUtilDecoder</a>; ' +
       'it should hand back your original installer, intact.';
     test.append(testSum, testBody);
     iroot.append(test);
     iroot.append(plainCmdBlock('Intune install command', rawInstall));
     if (rawUninstall) iroot.append(plainCmdBlock('Intune uninstall command', rawUninstall));
-    // Detection-rule picker (MSI code / File / Registry) — the rule you set in the Intune portal.
+    // Detection-rule picker (MSI code / File / Registry) - the rule you set in the Intune portal.
     // A catalog match supplies a verified install path (catDetect) for EXE apps we can't read statically;
     // default to File detection with that real path, but keep the picker working for the other rule types.
     let detKind: DetectionKind = catDetect ? 'file' : defaultDetectionKind(input);
     const detNote = note('');
     const setDet = () => {
       const txt = (detKind === 'file' && catDetect)
-        ? `File exists: "${catDetect}" — verified install path for this app.`
+        ? `File exists: "${catDetect}" - verified install path for this app.`
         : detectionRule(input, detKind);
-      detNote.textContent = 'Detection rule — ' + txt;
+      detNote.textContent = 'Detection rule - ' + txt;
     };
     iroot.append(optionRow('Detection', segControl(
       [{ id: 'msi', label: 'MSI code' }, { id: 'file', label: 'File' }, { id: 'registry', label: 'Registry' }],
@@ -750,9 +750,9 @@ const description =
     )));
     setDet();
     iroot.append(detNote);
-    iroot.append(note('In Intune: New Win32 app → upload the .intunewin → paste the install/uninstall commands above → set the detection rule above. Done — no IntuneWinAppUtil, no module install.'));
+    iroot.append(note('In Intune: New Win32 app → upload the .intunewin → paste the install/uninstall commands above → set the detection rule above. Done - no IntuneWinAppUtil, no module install.'));
 
-    // ── PSADT v4 deploy script — needs the PSADT framework around it ──
+    // ── PSADT v4 deploy script - needs the PSADT framework around it ──
     const dl = document.createElement('button');
     dl.type = 'button'; dl.className = 'besttry-btn'; dl.textContent = '⬇ Download Invoke-AppDeployToolkit.ps1';
     dl.addEventListener('click', () => downloadText('Invoke-AppDeployToolkit.ps1', generatePsadt(input)));
@@ -760,13 +760,13 @@ const description =
     const psnote = document.createElement('p');
     psnote.className = 'notes';
     psnote.innerHTML =
-      "This is the CONFIGURED deploy script, <strong>not the engine</strong> — it won't run on its own. " +
+      "This is the CONFIGURED deploy script, <strong>not the engine</strong> - it won't run on its own. " +
       'Get PSADT v4 from <a href="https://psappdeploytoolkit.com" target="_blank" rel="noopener">psappdeploytoolkit.com</a> ' +
       '(it ships the module + Invoke-AppDeployToolkit.exe), drop this .ps1 + your installer (into .\\Files) ' +
       'into the template, then deploy with the command below.';
     proot.append(psnote);
 
-    // PSADT invocation options — these change the deploy command below, not the .ps1 body
+    // PSADT invocation options - these change the deploy command below, not the .ps1 body
     // (Suppress reboot & Terminal Server are passed as switches; the .ps1 always accepts them).
     const opts: PsadtOptions = { deployMode: 'Silent', suppressReboot: true, terminalServerMode: false };
     const cmdWrap = document.createElement('div');
@@ -826,7 +826,7 @@ const description =
       root.append(ul);
     }
 
-    // Full property dump — the source of truth. Placed right under the curated "likely needed" list
+    // Full property dump - the source of truth. Placed right under the curated "likely needed" list
     // so it's reachable without scrolling past the uninstall command. Expanded by default so nothing's
     // hidden, unless the list is long (50+), in which case collapse it and point the user there in case
     // the tiered list missed their switch.
@@ -836,7 +836,7 @@ const description =
       hint.className = 'notes';
       hint.textContent =
         `Didn't find the property you need, or the install still isn't working? Expand “All ` +
-        `${a.properties.length} properties” below — the list above highlights the common switches, but ` +
+        `${a.properties.length} properties” below - the list above highlights the common switches, but ` +
         'the full table is the source of truth.';
       root.append(hint);
     }
@@ -868,17 +868,17 @@ const description =
     details.append(table);
     root.append(details);
 
-    // Uninstall-replay warning + ready command — the action, kept last in the MSI block.
+    // Uninstall-replay warning + ready command - the action, kept last in the MSI block.
     const uh = document.createElement('div');
     uh.className = 'lbl';
-    uh.textContent = 'Uninstall — replay these properties';
+    uh.textContent = 'Uninstall - replay these properties';
     root.append(uh);
 
     const note = document.createElement('p');
     note.className = 'notes';
     if (a.uninstallReplay.length) {
       note.textContent =
-        `MSI properties don't persist past install — on /x, deferred custom actions re-run with the ` +
+        `MSI properties don't persist past install - on /x, deferred custom actions re-run with the ` +
         `package's authored defaults, not your install-time values. If you set these at install, pass ` +
         `them again at uninstall: ${a.uninstallReplay.join(', ')}.` +
         (a.registryRecovery
@@ -1086,7 +1086,7 @@ const description =
     const noupdatesEl = $<HTMLInputElement>('b-noupdates');
     const noprereqsEl = $<HTMLInputElement>('b-noprereqs');
     // Reset to defaults for the new file (these static inputs would otherwise keep prior state).
-    // Backslash literals are set HERE, not in the markup — Astro eats single backslashes in static
+    // Backslash literals are set HERE, not in the markup - Astro eats single backslashes in static
     // HTML attribute values (treats them as JS-string escapes), turning "C:\Program Files" into "C:Program Files".
     dirEl.value = ''; norestartEl.checked = true; logEl.checked = false;
     noupdatesEl.checked = false; noprereqsEl.checked = false;
@@ -1118,7 +1118,7 @@ const description =
       if (el) el.hidden = !on;
     };
     function syncRows() {
-      // Advanced Installer's Extract op takes only a path — hide everything else for it.
+      // Advanced Installer's Extract op takes only a path - hide everything else for it.
       const extractOnly = r.engine === 'advanced-installer' && op === 'extract';
       showRow('op', cfg.ops.length > 1);
       showRow('ui', !extractOnly);
@@ -1147,7 +1147,7 @@ const description =
     recomputeBuilder();
   }
 
-  // Display-only render (no scroll, no builder rebuild) — safe to call on a shell-tab switch.
+  // Display-only render (no scroll, no builder rebuild) - safe to call on a shell-tab switch.
   function renderDisplay(r: DetectionResult) {
     $('r-engine').textContent = r.label;
     $('r-file').textContent = r.fileName ?? '';
@@ -1156,7 +1156,7 @@ const description =
     badge.textContent = r.confidence === 'none' ? 'unknown' : r.confidence + ' confidence';
     badge.className = 'badge ' + r.confidence;
 
-    // Curated catalog match — a HARD-CODED known string, shown prominently and clearly labeled as
+    // Curated catalog match - a HARD-CODED known string, shown prominently and clearly labeled as
     // such (not read from the file). The fallback for the custom/compressed long tail.
     const cat = lookupCatalog({ product: r.product, fileName: r.fileName });
     // Guard: a name-match whose command contradicts the detected engine (e.g. a Firefox MSI hitting
@@ -1180,7 +1180,7 @@ const description =
       head.append(cbadge, nm);
       const sub = document.createElement('p');
       sub.className = 'catalog-sub';
-      sub.textContent = 'A hand-verified silent string for this app — a hard-coded known value, NOT read from your file.';
+      sub.textContent = 'A hand-verified silent string for this app - a hard-coded known value, NOT read from your file.';
       catEl.append(head, sub);
       catEl.append(makeCmdBlock('Install (silent)', cat.install.replaceAll('{file}', fn)));
       if (cat.uninstall) catEl.append(makeCmdBlock('Uninstall (silent)', cat.uninstall.replaceAll('{file}', fn)));
@@ -1196,7 +1196,7 @@ const description =
 
     const cmds = $('r-commands');
     cmds.innerHTML = '';
-    // When a catalog match has a verified uninstall, use it for the displayed uninstall command too —
+    // When a catalog match has a verified uninstall, use it for the displayed uninstall command too -
     // the engine-derived one is a generic "%ProgramFiles%\<App>\Uninstall.exe" placeholder for NSIS/Inno.
     const cmdFn = r.fileName || 'installer.exe';
     for (const c of r.commands) {
@@ -1212,7 +1212,7 @@ const description =
     $('r-shell').hidden = !shellable;
     $('r-shell-hint').hidden = !(shell === 'pwsh' && shellable);
 
-    // Deployment artifacts (PSADT v4 + Intune) — uses the catalog command if shown, else detection.
+    // Deployment artifacts (PSADT v4 + Intune) - uses the catalog command if shown, else detection.
     const deployEl = $('r-deploy');
     if (shellable) {
       deployEl.hidden = false;
@@ -1248,7 +1248,7 @@ const description =
       const note = document.createElement('p');
       note.className = 'notes';
       note.textContent =
-        'Harvested from the package — pass these as PROPERTY="value" (the builder below has them ' +
+        'Harvested from the package - pass these as PROPERTY="value" (the builder below has them ' +
         'pre-loaded as fields). Names only; default values live in the compressed MSI.';
       const chips = document.createElement('div');
       chips.className = 'chips';
@@ -1314,7 +1314,7 @@ const description =
 
   async function handleFile(file: File) {
     if (file.size > MAX_BYTES) {
-      setStatus(`That file is ${Math.round(file.size / 1024 / 1024)} MB — too big to parse safely in a tab.`, true);
+      setStatus(`That file is ${Math.round(file.size / 1024 / 1024)} MB - too big to parse safely in a tab.`, true);
       return;
     }
     setStatus(`Reading ${file.name} (${Math.round(file.size / 1024)} KB)…`);
@@ -1353,7 +1353,7 @@ const description =
   });
   // copy buttons are created per command block in makeCmdBlock(), wired there.
 
-  // CMD ⇄ PowerShell toggle — re-renders the current result in the chosen shell's syntax
+  // CMD ⇄ PowerShell toggle - re-renders the current result in the chosen shell's syntax
   document.querySelectorAll<HTMLButtonElement>('.shell-btn').forEach((btn) => {
     btn.addEventListener('click', () => {
       const next = (btn.dataset.shell as Shell) ?? 'cmd';
@@ -1378,7 +1378,7 @@ const description =
     const disc = document.createElement('p');
     disc.className = 'notes';
     disc.textContent =
-      'Best-effort guesses harvested from the binary — strings that LOOK like switches/options. ' +
+      'Best-effort guesses harvested from the binary - strings that LOOK like switches/options. ' +
       'Expect noise and gaps; verify against vendor docs before deploying.';
     out.append(disc);
     const section = (label: string, items: string[]) => {

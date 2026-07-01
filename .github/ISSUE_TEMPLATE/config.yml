@@ -2,4 +2,4 @@ blank_issues_enabled: true
 contact_links:
   - name: Just use the tool
     url: https://getrff.com/switchhunt
-    about: Drop an installer and get its silent switches — runs in your browser, nothing uploaded.
+    about: Drop an installer and get its silent switches - runs in your browser, nothing uploaded.

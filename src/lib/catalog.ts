@@ -1,10 +1,10 @@
 /**
- * Curated catalog of KNOWN, hand-verified silent-install strings for popular apps — with a bias
+ * Curated catalog of KNOWN, hand-verified silent-install strings for popular apps - with a bias
  * toward the WEIRD ones (custom CLIs, mandatory properties, gotchas) that signature detection can't
  * derive. This is the fallback for the custom/compressed long tail (Citrix, AnyDesk, Docker, …) and
  * a confirmation for the common ones.
  *
- * IMPORTANT: every entry here is HARD-CODED, not read from the user's file — the UI labels it as such.
+ * IMPORTANT: every entry here is HARD-CODED, not read from the user's file - the UI labels it as such.
  * `{file}` in a command is replaced with the dropped file's name at render time. Sources: vendor docs
  * + silentinstallhq + verified switch output (e.g. Citrix's own /? ). Starter set; extend freely.
  */
@@ -16,7 +16,7 @@ export interface CatalogEntry {
   /** Known file path that proves the app is installed - used as the Intune File detection rule for EXE
    *  apps whose real install path we can't read from the installer (NSIS/Inno decide it at install time). */
   detect?: string;
-  /** Why it's non-obvious — the gotcha worth surfacing. */
+  /** Why it's non-obvious - the gotcha worth surfacing. */
   note?: string;
 }
 
@@ -59,7 +59,7 @@ export const CATALOG: CatalogEntry[] = [
     name: 'CrowdStrike Falcon Sensor',
     match: { product: /crowdstrike|falcon sensor/i, file: /WindowsSensor|FalconSensor/i },
     install: '{file} /install /quiet /norestart CID=<your-CID>',
-    note: 'CID (customer ID + checksum) is REQUIRED — without it the sensor installs but never registers.',
+    note: 'CID (customer ID + checksum) is REQUIRED - without it the sensor installs but never registers.',
   },
   {
     name: 'Python',
@@ -95,7 +95,7 @@ export const CATALOG: CatalogEntry[] = [
     name: 'Wireshark',
     match: { product: /wireshark/i, file: /Wireshark.*win/i },
     install: '{file} /S /desktopicon=yes',
-    note: 'NSIS. Bundles Npcap, which runs its own installer — add /quiet and let it through.',
+    note: 'NSIS. Bundles Npcap, which runs its own installer - add /quiet and let it through.',
   },
   {
     name: 'TeamViewer (Host)',
@@ -115,7 +115,7 @@ export const CATALOG: CatalogEntry[] = [
     name: 'Microsoft 365 Apps / Office',
     match: { product: /microsoft 365|office 365|microsoft office/i, file: /OfficeSetup|OfficeDeploymentTool/i },
     install: '{file} /configure config.xml',
-    note: 'Office has NO plain silent switch — it installs via the Office Deployment Tool (setup.exe) driven by a config.xml. Author the XML at config.office.com (channel, bitness, apps, language), ship it next to setup.exe. "{file} /download config.xml" pre-stages the bits first.',
+    note: 'Office has NO plain silent switch - it installs via the Office Deployment Tool (setup.exe) driven by a config.xml. Author the XML at config.office.com (channel, bitness, apps, language), ship it next to setup.exe. "{file} /download config.xml" pre-stages the bits first.',
   },
   {
     name: 'Adobe Acrobat (Pro / Standard)',
@@ -127,7 +127,7 @@ export const CATALOG: CatalogEntry[] = [
     name: 'Foxit PDF Editor',
     match: { product: /foxit/i, file: /Foxit.*(Setup|Editor)|FoxitPDFEditor/i },
     install: 'msiexec /i "{file}" /qn /norestart KEYCODE=<your-volume-key>',
-    note: 'KEYCODE= (your volume license) is REQUIRED to activate — without it it installs as an unlicensed trial. Add MAKEDEFAULT=0 so it doesn\'t grab the PDF association.',
+    note: 'KEYCODE= (your volume license) is REQUIRED to activate - without it it installs as an unlicensed trial. Add MAKEDEFAULT=0 so it doesn\'t grab the PDF association.',
   },
   {
     name: 'Nitro PDF Pro',
@@ -139,7 +139,7 @@ export const CATALOG: CatalogEntry[] = [
     name: 'TechSmith Snagit',
     match: { product: /snagit/i, file: /snagit/i },
     install: 'msiexec /i "{file}" /qn TSC_SOFTWARE_KEY=<your-key>',
-    note: 'TSC_SOFTWARE_KEY= the software key. TechSmith\'s Deployment Tool emits an .mst — apply it with TRANSFORMS="snagit.mst" to also kill auto-update + the welcome screen.',
+    note: 'TSC_SOFTWARE_KEY= the software key. TechSmith\'s Deployment Tool emits an .mst - apply it with TRANSFORMS="snagit.mst" to also kill auto-update + the welcome screen.',
   },
   {
     name: 'Webroot SecureAnywhere',
@@ -158,7 +158,7 @@ export const CATALOG: CatalogEntry[] = [
     name: 'ESET Endpoint Security',
     match: { product: /eset/i, file: /ees_|eea_|eset/i },
     install: 'msiexec /i "{file}" /qn /norestart',
-    note: 'Bare MSI installs the client but it won\'t be MANAGED — for unattended enrollment layer the ESET PROTECT config (a generated .mst / install_config.ini) via TRANSFORMS=. A reboot is usually required.',
+    note: 'Bare MSI installs the client but it won\'t be MANAGED - for unattended enrollment layer the ESET PROTECT config (a generated .mst / install_config.ini) via TRANSFORMS=. A reboot is usually required.',
   },
 
   // ── the common ones (confirmation) ──

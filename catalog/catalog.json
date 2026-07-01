@@ -66,7 +66,7 @@
       "install": "{file} /install /quiet /norestart CID=<your-CID>",
       "uninstall": null,
       "detect": null,
-      "note": "CID (customer ID + checksum) is REQUIRED — without it the sensor installs but never registers."
+      "note": "CID (customer ID + checksum) is REQUIRED - without it the sensor installs but never registers."
     },
     {
       "name": "Python",
@@ -132,7 +132,7 @@
       "install": "{file} /S /desktopicon=yes",
       "uninstall": null,
       "detect": null,
-      "note": "NSIS. Bundles Npcap, which runs its own installer — add /quiet and let it through."
+      "note": "NSIS. Bundles Npcap, which runs its own installer - add /quiet and let it through."
     },
     {
       "name": "TeamViewer (Host)",
@@ -165,7 +165,7 @@
       "install": "{file} /configure config.xml",
       "uninstall": null,
       "detect": null,
-      "note": "Office has NO plain silent switch — it installs via the Office Deployment Tool (setup.exe) driven by a config.xml. Author the XML at config.office.com (channel, bitness, apps, language), ship it next to setup.exe. \"{file} /download config.xml\" pre-stages the bits first."
+      "note": "Office has NO plain silent switch - it installs via the Office Deployment Tool (setup.exe) driven by a config.xml. Author the XML at config.office.com (channel, bitness, apps, language), ship it next to setup.exe. \"{file} /download config.xml\" pre-stages the bits first."
     },
     {
       "name": "Adobe Acrobat (Pro / Standard)",
@@ -187,7 +187,7 @@
       "install": "msiexec /i \"{file}\" /qn /norestart KEYCODE=<your-volume-key>",
       "uninstall": null,
       "detect": null,
-      "note": "KEYCODE= (your volume license) is REQUIRED to activate — without it it installs as an unlicensed trial. Add MAKEDEFAULT=0 so it doesn't grab the PDF association."
+      "note": "KEYCODE= (your volume license) is REQUIRED to activate - without it it installs as an unlicensed trial. Add MAKEDEFAULT=0 so it doesn't grab the PDF association."
     },
     {
       "name": "Nitro PDF Pro",
@@ -209,7 +209,7 @@
       "install": "msiexec /i \"{file}\" /qn TSC_SOFTWARE_KEY=<your-key>",
       "uninstall": null,
       "detect": null,
-      "note": "TSC_SOFTWARE_KEY= the software key. TechSmith's Deployment Tool emits an .mst — apply it with TRANSFORMS=\"snagit.mst\" to also kill auto-update + the welcome screen."
+      "note": "TSC_SOFTWARE_KEY= the software key. TechSmith's Deployment Tool emits an .mst - apply it with TRANSFORMS=\"snagit.mst\" to also kill auto-update + the welcome screen."
     },
     {
       "name": "Webroot SecureAnywhere",
@@ -242,7 +242,7 @@
       "install": "msiexec /i \"{file}\" /qn /norestart",
       "uninstall": null,
       "detect": null,
-      "note": "Bare MSI installs the client but it won't be MANAGED — for unattended enrollment layer the ESET PROTECT config (a generated .mst / install_config.ini) via TRANSFORMS=. A reboot is usually required."
+      "note": "Bare MSI installs the client but it won't be MANAGED - for unattended enrollment layer the ESET PROTECT config (a generated .mst / install_config.ini) via TRANSFORMS=. A reboot is usually required."
     },
     {
       "name": "Google Chrome (Enterprise)",

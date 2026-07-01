@@ -1,5 +1,5 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
-  <!-- RFFLogoMarkOnFill — double-chevron mark on a violet rounded square. Trailing
+  <!-- RFFLogoMarkOnFill - double-chevron mark on a violet rounded square. Trailing
        chevron at 60% opacity gives the "motion" feel of the brand. Kept identical to
        platform/src/RFF.Web/public/favicon.svg so the platform tab and the marketing
        tab read as one product when both are open in a tab strip. Source of truth for

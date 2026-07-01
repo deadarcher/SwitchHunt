@@ -241,8 +241,8 @@ export function detectionRule(i: PsadtInput, kind: DetectionKind): string {
       : 'No MSI product code was detected for this installer - use a File or Registry rule instead.';
   }
   if (kind === 'file') {
-    // EXE installers (NSIS/Inno/etc.) don't record their target path in the file — it's chosen at
-    // install time — so this is a SHAPE to fill in, never derived from the dropped installer. (We
+    // EXE installers (NSIS/Inno/etc.) don't record their target path in the file - it's chosen at
+    // install time - so this is a SHAPE to fill in, never derived from the dropped installer. (We
     // deliberately don't splice the installer's filename into the path; that produced garbage.)
     const vendor = i.vendor && i.vendor.length <= 40 ? i.vendor : '<Vendor>';
     return `File exists: point this at a file the app installs, e.g. "C:\\Program Files\\${vendor}\\<App>\\<app>.exe". The installer doesn't carry its install path, so set this to a real file you know it drops (check "Program Files (x86)" for 32-bit apps).`;

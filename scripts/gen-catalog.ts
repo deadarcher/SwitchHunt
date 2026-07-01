@@ -36,7 +36,7 @@ console.log(`wrote catalog/catalog.json (${entries.length} entries)`);
 
 // Human-readable browse table (CATALOG.md). Built with string concat to dodge backtick-escaping.
 const esc = (s: string) => s.replace(/\|/g, '\\|');
-const code = (s: string | null | undefined) => (s ? '`' + esc(s) + '`' : '—');
+const code = (s: string | null | undefined) => (s ? '`' + esc(s) + '`' : '-');
 const rows = CATALOG.map(
   (e) =>
     '| ' + esc(e.name) + ' | ' + code(e.install) + ' | ' + code(e.uninstall) + ' | ' +
@@ -45,13 +45,13 @@ const rows = CATALOG.map(
 const mdLines = [
   '# SwitchHunt catalog',
   '',
-  "Hand-verified silent-install strings for apps whose switches you can't derive from the installer alone —",
+  "Hand-verified silent-install strings for apps whose switches you can't derive from the installer alone -",
   'custom CLIs, mandatory keys, compressed payloads. `{file}` is replaced with the dropped installer name at',
   'runtime. For well-known apps the catalog also carries the real uninstall command and a file-detection path.',
   '',
-  '**' + CATALOG.length + ' entries.** Generated from `src/lib/catalog.ts` — do not hand-edit; run `npm run gen:catalog`.',
+  '**' + CATALOG.length + ' entries.** Generated from `src/lib/catalog.ts` - do not hand-edit; run `npm run gen:catalog`.',
   '',
-  'Got one we miss? [Submit it with the issue form](https://github.com/deadarcher/SwitchHunt/issues/new?template=silent-install-string.yml) (no coding needed) — or PR `src/lib/catalog.ts` ([CONTRIBUTING](CONTRIBUTING.md)).',
+  'Got one we miss? [Submit it with the issue form](https://github.com/deadarcher/SwitchHunt/issues/new?template=silent-install-string.yml) (no coding needed) - or PR `src/lib/catalog.ts` ([CONTRIBUTING](CONTRIBUTING.md)).',
   '',
   '| App | Silent install | Silent uninstall | Detection (file) | Notes |',
   '|---|---|---|---|---|',

@@ -7,7 +7,7 @@
  *   - the full property list (incl. which are public / which are secrets),
  *   - a TIERED "properties you probably must set" model (required / likely / sensitive / optional),
  *   - an uninstall-replay warning: MSI properties are transaction-scoped, so deferred custom
- *     actions re-run at UNINSTALL with the MSI's AUTHORED defaults — not your install-time values.
+ *     actions re-run at UNINSTALL with the MSI's AUTHORED defaults - not your install-time values.
  *
  * Pure parsing: nothing is executed, nothing leaves the browser.
  *
@@ -23,7 +23,7 @@
  *     bias so that a stored 0 can mean NULL; string columns store a 1-based _StringPool index.
  *
  * We read the OLE container ourselves (a small MS-CFB reader, below) rather than via a library,
- * because the common JS readers eagerly index the WHOLE file — and they trip on the 4096-byte-
+ * because the common JS readers eagerly index the WHOLE file - and they trip on the 4096-byte-
  * sector containers that large enterprise MSIs use. We only follow the chains for the handful of
  * tiny metadata/table streams, never the (often 100+ MB) embedded cabinet.
  */
@@ -390,7 +390,7 @@ export function analyzeMsi(buf: ArrayBuffer): MsiAnalysis | null {
   // sensitive: public props the author hid from the log (secrets you're meant to supply)
   for (const name of hidden) {
     if (isPublicName(name)) {
-      bump(name, 'sensitive', 'In MsiHiddenProperties — a secret the author hides from logs; supply it explicitly.');
+      bump(name, 'sensitive', 'In MsiHiddenProperties - a secret the author hides from logs; supply it explicitly.');
     }
   }
 
@@ -406,13 +406,13 @@ export function analyzeMsi(buf: ArrayBuffer): MsiAnalysis | null {
         prop,
         hasDefault ? 'optional' : 'likely',
         hasDefault
-          ? 'Pre-filled in the setup wizard — override only if the default is wrong.'
-          : 'Collected by a setup-wizard field with no default — a silent install must pass it.',
+          ? 'Pre-filled in the setup wizard - override only if the default is wrong.'
+          : 'Collected by a setup-wizard field with no default - a silent install must pass it.',
       );
     }
   }
 
-  // likely / optional: SecureCustomProperties — public props the author exposes for command-line
+  // likely / optional: SecureCustomProperties - public props the author exposes for command-line
   // configuration (the custom switches). This is how a UI-less / silently-deployed MSI declares them,
   // when there are no wizard Edit fields to collect them. Filter out WiX/MSI/ARP internals.
   const isUserProp = (n: string): boolean =>
@@ -424,8 +424,8 @@ export function analyzeMsi(buf: ArrayBuffer): MsiAnalysis | null {
       name,
       hasDefault ? 'optional' : 'likely',
       hasDefault
-        ? 'Declared in SecureCustomProperties (command-line configurable) — has a default; override if needed.'
-        : 'Declared in SecureCustomProperties — a custom property the author expects on the command line.',
+        ? 'Declared in SecureCustomProperties (command-line configurable) - has a default; override if needed.'
+        : 'Declared in SecureCustomProperties - a custom property the author expects on the command line.',
     );
   }
 
@@ -436,7 +436,7 @@ export function analyzeMsi(buf: ArrayBuffer): MsiAnalysis | null {
       const cond = (c.Condition ?? '') as string;
       for (const tok of cond.match(PROP_TOKEN) ?? []) {
         if (isPublicName(tok) && !STD_PROPS.has(tok) && propMap.has(tok)) {
-          bump(tok, 'required', `Gated by a LaunchCondition (${truncate(cond, 50)}) — install fails if unmet.`);
+          bump(tok, 'required', `Gated by a LaunchCondition (${truncate(cond, 50)}) - install fails if unmet.`);
         }
       }
     }
@@ -450,7 +450,7 @@ export function analyzeMsi(buf: ArrayBuffer): MsiAnalysis | null {
   // MSI props are transaction-scoped: at /x, deferred (in-script) custom actions re-run with the
   // package's AUTHORED defaults, not your install-time values. Collect public props referenced by
   // deferred CAs, then keep only the ACTIONABLE ones (a secret, or already flagged required/likely/
-  // sensitive) — that's what an admin actually set at install and must replay. Avoids listing the
+  // sensitive) - that's what an admin actually set at install and must replay. Avoids listing the
   // long tail of defaulted booleans some installers' uninstall CAs also touch.
   const deferredRefs = new Set<string>();
   const cas = db.table('CustomAction');

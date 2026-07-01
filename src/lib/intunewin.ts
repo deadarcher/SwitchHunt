@@ -1,6 +1,6 @@
 /**
  * In-browser .intunewin packager. Produces a real Intune Win32 content package with zero install and
- * nothing uploaded — the installer bytes are zipped, AES-256-CBC encrypted, HMAC-SHA256 authenticated,
+ * nothing uploaded - the installer bytes are zipped, AES-256-CBC encrypted, HMAC-SHA256 authenticated,
  * and wrapped with a Detection.xml, exactly as Microsoft's IntuneWinAppUtil.exe does.
  *
  * Format (reverse-engineered; svrooij.io + MSEndpointMgr):
@@ -47,7 +47,7 @@ function zipStore(files: ZipFile[]): Uint8Array {
     ld.setUint32(0, 0x04034b50, true);
     ld.setUint16(4, 20, true);          // version needed
     ld.setUint16(8, 0, true);           // method: store
-    ld.setUint16(12, 0x21, true);       // mod date (1980-01-01, fixed — no Date.now in this build)
+    ld.setUint16(12, 0x21, true);       // mod date (1980-01-01, fixed - no Date.now in this build)
     ld.setUint32(14, crc, true);
     ld.setUint32(18, size, true);
     ld.setUint32(22, size, true);
