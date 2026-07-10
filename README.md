@@ -2,7 +2,7 @@
 
 **Drop a Windows installer in your browser → get its silent-install switches.** No upload, no signup, no agent. The file you drop is read **entirely in your browser** - it never touches a server.
 
-▶ **Use it now (hosted):** https://getrff.com/switchhunt
+**Use it now (hosted):** https://getrff.com/switchhunt
 
 Works on ~85% of installers out of the box, plus a curated catalog for the painful vendor one-offs.
 
@@ -27,8 +27,8 @@ MSI · WiX Burn · Advanced Installer · Inno Setup · NSIS · InstallShield · 
 
 Signature detection can't derive a custom CLI's flags (Citrix, Teams machine-wide, AnyDesk, Docker Desktop, CrowdStrike, GlobalProtect…). Those live in [`src/lib/catalog.ts`](src/lib/catalog.ts) as **hand-verified known strings**, clearly labeled in the UI as "from catalog, not read from your file." For well-known apps the catalog also carries the real **uninstall** command and a **detection** path (the install dir an EXE installer never records).
 
-- 📖 **Browse the catalog:** [CATALOG.md](CATALOG.md) (readable table) - or the machine-readable [`catalog/catalog.json`](catalog/catalog.json).
-- ➕ **Add one - no coding:** [open a submission issue](https://github.com/deadarcher/SwitchHunt/issues/new?template=silent-install-string.yml) (a quick form), or PR `src/lib/catalog.ts` ([CONTRIBUTING](CONTRIBUTING.md)).
+- **Browse the catalog:** [CATALOG.md](CATALOG.md) (readable table) - or the machine-readable [`catalog/catalog.json`](catalog/catalog.json).
+- **Add one - no coding:** [open a submission issue](https://github.com/deadarcher/SwitchHunt/issues/new?template=silent-install-string.yml) (a quick form), or PR `src/lib/catalog.ts` ([CONTRIBUTING](CONTRIBUTING.md)).
 
 This is where the project most needs help. `CATALOG.md` + `catalog/catalog.json` are generated from the `.ts` - run `npm run gen:catalog`, don't hand-edit them.
 

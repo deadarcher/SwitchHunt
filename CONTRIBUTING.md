@@ -41,7 +41,7 @@ After editing `catalog.ts`, run `npm run gen:catalog` to regenerate the readable
 
 Detection lives in [`src/lib/installerDetect.ts`](src/lib/installerDetect.ts) (byte signatures + PE/MSI parsing). If an installer is misidentified, a PR that adds/sharpens a signature - with a note on the marker bytes you keyed off - is very welcome. MSI table decoding is in [`src/lib/msi.ts`](src/lib/msi.ts).
 
-## ⚠ Always test in a throwaway VM
+## Always test in a throwaway VM
 
 Silent switches are detected/curated best-effort. A wrong switch silently ships a broken package to every machine. **Validate any command in a disposable VM before you deploy it.** Catalog entries are community-contributed and provided as-is (see the MIT license's no-warranty clause).
 
@@ -53,4 +53,4 @@ npm run dev      # http://localhost:4321
 npm run build    # must pass before you open a PR
 ```
 
-Then fork, branch, and open a PR. Thanks for making fleet deployment a little less painful. 🎯
+Then fork, branch, and open a PR. Thanks for making fleet deployment a little less painful. 
