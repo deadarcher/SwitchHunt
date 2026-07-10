@@ -486,7 +486,13 @@ function detectCore(buf: ArrayBuffer, fileName?: string): DetectionResult {
         'reads clearer in a deploy script. /repair, /uninstall and /layout are Burn-engine built-ins - ' +
         'identical for every Burn bundle, not specific to this one. /layout copies the bundle + all ' +
         'payloads to a folder for redistribution. A Burn bootstrapper usually chains one or more MSIs ' +
-        'internally.',
+        'internally. ' +
+        'Caveat for VENDOR bundles: /quiet is honored by the engine, but a bundle built with a CUSTOM ' +
+        'bootstrapper app (rather than the standard WiX one) can ignore it and pop a wizard anyway - a ' +
+        'defect in that installer, not a switch you can fix (seen on Sony Catalyst Browse). When that ' +
+        'happens, extract the chain and drive it yourself: 7-Zip opens a Burn .exe directly, or run ' +
+        '/layout to unpack the inner prerequisite (e.g. vc_redist.x64.exe) + MSI, then ' +
+        '`vc_redist.x64.exe /install /quiet /norestart` followed by `msiexec /i App.msi /qn /norestart`.',
     };
   }
 
