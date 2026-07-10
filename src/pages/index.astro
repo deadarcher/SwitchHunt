@@ -553,6 +553,11 @@ const description =
   let shell: Shell = 'cmd';
   let lastResult: DetectionResult | null = null;
   let lastBuf: ArrayBuffer | null = null; // retained so the "try anyway" button can re-scan the bytes
+  // The File handle itself — for large files lastBuf is only the DETECT_SLICE head (reading a
+  // 300+ MB bundle fully just to sniff its stub froze the tab: Sony Catalyst Browse, 334 MB),
+  // so consumers that need EVERY byte (the .intunewin build) re-read from here on demand.
+  let lastFile: File | null = null;
+  const DETECT_SLICE = 32 * 1024 * 1024; // engine stubs/markers all live in the first few MB
   let recomputeBuilder: (() => void) | null = null;
 
   /** Rewrite a CMD-style command for PowerShell: a current-dir exe needs a .\ prefix, a quoted
@@ -700,14 +705,17 @@ const description =
     ib.type = 'button'; ib.className = 'primary-btn'; ib.textContent = '⬇ Build .intunewin (in browser)';
     const status = document.createElement('span'); status.className = 'iw-status';
     ib.addEventListener('click', async () => {
-      if (!lastBuf) return;
-      if (lastBuf.byteLength > INTUNEWIN_MAX_BYTES) {
+      if (!lastBuf || !lastFile) return;
+      // Gate on the FILE's size — for large files lastBuf is only the detection head-slice.
+      if (lastFile.size > INTUNEWIN_MAX_BYTES) {
         status.textContent = ` - this file is over ${(INTUNEWIN_MAX_BYTES / 1024 / 1024) | 0} MB; too big to package in a browser tab. Use Microsoft's IntuneWinAppUtil.exe for this one.`;
         return;
       }
       ib.disabled = true; const old = ib.textContent; ib.textContent = 'Packaging…'; status.textContent = '';
       try {
-        const out = await buildIntuneWin(input.fileName, new Uint8Array(lastBuf), input.name);
+        // Packaging needs EVERY byte; re-read the full file when detection only sliced the head.
+        const fullBuf = lastBuf.byteLength === lastFile.size ? lastBuf : await lastFile.arrayBuffer();
+        const out = await buildIntuneWin(input.fileName, new Uint8Array(fullBuf), input.name);
         downloadBytes((input.fileName.replace(/\.[^.]+$/, '') || 'package') + '.intunewin', out);
         status.textContent = ' ✓ built';
       } catch (e) {
@@ -1319,9 +1327,14 @@ const description =
     }
     setStatus(`Reading ${file.name} (${Math.round(file.size / 1024)} KB)…`);
     try {
-      const buf = await file.arrayBuffer();
+      lastFile = file;
+      // Big files: read only the head. Every engine marker (PE section table, stub strings,
+      // archive magic) sits at the front — full reads + full-buffer signature scans are what
+      // used to freeze the tab on 300+ MB Burn bundles (Sony Catalyst Browse).
+      const big = file.size > DETECT_SLICE;
+      const buf = big ? await file.slice(0, DETECT_SLICE).arrayBuffer() : await file.arrayBuffer();
       lastBuf = buf;
-      const r = detectInstaller(buf, file.name);
+      const r = detectInstaller(buf, file.name, big ? file.size : undefined);
       setStatus('');
       render(r);
     } catch (e) {

@@ -98,6 +98,32 @@ function startsWith(hay: Uint8Array, sig: number[]): boolean {
   return true;
 }
 
+/**
+ * Walk the PE section table (first ~1 KB) for an exact section name. The precise way to spot a
+ * WiX Burn stub - Burn marks itself with a literal `.wixburn` SECTION, so this can't false-positive
+ * on payload bytes and costs nothing even on a 300+ MB bundle (vs scanning megabytes for a loose
+ * ASCII match). Malformed PE → false, and the caller falls back to the byte scan.
+ */
+function peHasSection(bytes: Uint8Array, name: string): boolean {
+  try {
+    if (bytes.length < 0x40 || bytes[0] !== 0x4d || bytes[1] !== 0x5a) return false; // MZ
+    const dv = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
+    const pe = dv.getUint32(0x3c, true);
+    if (pe <= 0 || pe + 24 > bytes.length || dv.getUint32(pe, true) !== 0x00004550) return false; // "PE\0\0"
+    const nsec = dv.getUint16(pe + 6, true);
+    const optSize = dv.getUint16(pe + 20, true);
+    const base = pe + 24 + optSize;
+    for (let i = 0; i < Math.min(nsec, 96); i++) {
+      const off = base + i * 40;
+      if (off + 8 > bytes.length) return false;
+      let s = '';
+      for (let j = 0; j < 8; j++) { const b = bytes[off + j]; if (b === 0) break; s += String.fromCharCode(b); }
+      if (s === name) return true;
+    }
+  } catch { /* malformed PE - fall through to the byte scan */ }
+  return false;
+}
+
 /** UTF-16LE byte pattern for an ASCII string - used to find version-info keys. */
 function utf16(s: string): number[] {
   const out: number[] = [];
@@ -333,7 +359,19 @@ export function bestEffortSwitches(buf: ArrayBuffer): { flags: string[]; options
  * which are short and can appear coincidentally inside compressed payloads. So an Inno/NSIS
  * installer that happens to embed a 7z blob is still reported as Inno/NSIS.
  */
-export function detectInstaller(buf: ArrayBuffer, fileName?: string): DetectionResult {
+export function detectInstaller(buf: ArrayBuffer, fileName?: string, totalSize?: number): DetectionResult {
+  const r = detectCore(buf, fileName);
+  // Large files are identified from a head slice (the page slices before reading, so a 300+ MB
+  // bundle no longer freezes the tab on full-buffer scans). Say so honestly - and why it's safe.
+  if (totalSize != null && totalSize > buf.byteLength) {
+    const totMb = Math.round(totalSize / 1048576);
+    const headMb = Math.round(buf.byteLength / 1048576);
+    r.notes = `${r.notes ? r.notes + ' ' : ''}Large file (${totMb} MB): identified from its first ${headMb} MB. Installer stubs and engine markers live at the front of the file, so nothing is lost by skipping the payload.`;
+  }
+  return r;
+}
+
+function detectCore(buf: ArrayBuffer, fileName?: string): DetectionResult {
   const bytes = new Uint8Array(buf);
   const exe = fileName ?? 'setup.exe';
   const msi = fileName ?? 'package.msi';
@@ -426,8 +464,9 @@ export function detectInstaller(buf: ArrayBuffer, fileName?: string): DetectionR
     fileName,
   };
 
-  // 2) WiX Burn bundle
-  if (has(bytes, SIG.wixBurn)) {
+  // 2) WiX Burn bundle — section-table parse first (exact + instant, e.g. Sony Catalyst Browse's
+  // 334 MB bundle), loose ASCII scan as the fallback for oddly-linked stubs.
+  if (peHasSection(bytes, '.wixburn') || has(bytes, SIG.wixBurn)) {
     return {
       ...meta,
       engine: 'wix-burn',
