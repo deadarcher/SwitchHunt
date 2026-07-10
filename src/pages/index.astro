@@ -260,6 +260,21 @@ const description =
   .burn-kind.k-exe { background: #0ea5e9; }
   .burn-kind.k-msp, .burn-kind.k-msu, .burn-kind.k-package { background: #64748b; }
   .burn-args { font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 11px; color: var(--ink-3); }
+  /* Custom-BA bundle: the bundle-level /quiet commands would install interactively, so hide them. */
+  .result.burn-silent-risk #r-shell,
+  .result.burn-silent-risk #r-shell-hint,
+  .result.burn-silent-risk #r-commands,
+  .result.burn-silent-risk #r-builder,
+  .result.burn-silent-risk #r-deploy,
+  .result.burn-silent-risk #r-modifiers-block { display: none !important; }
+  .burn-recipe { margin-top: 4px; }
+  .burn-recipe .lbl { font-size: 11px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--ink-3); margin: 0 0 8px; }
+  .burn-recipe ol { margin: 0; padding-left: 20px; display: flex; flex-direction: column; gap: 10px; font-size: 13.5px; line-height: 1.6; color: var(--ink-2); }
+  .burn-recipe .cmd { margin-top: 6px; background: #0b0f17; border: 1px solid var(--border); border-radius: 8px; padding: 10px 12px; overflow-x: auto; }
+  .burn-recipe .cmd code { font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 12.5px; color: #e5e9f0; white-space: pre; }
+  .burn-dl { display: inline-block; margin-left: 4px; font-weight: 600; color: var(--brand); text-decoration: underline; text-underline-offset: 2px; }
+  .burn-hint { margin-top: 6px; font-size: 12px; color: var(--ink-3); line-height: 1.5; }
+  .burn-hint code { font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 11px; }
   .result-file {
     font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 12px;
     color: var(--ink-3); margin-top: 4px; word-break: break-all;
@@ -1328,6 +1343,7 @@ const description =
   function render(r: DetectionResult) {
     lastResult = r;
     $('r-burn').hidden = true; $('r-burn').innerHTML = ''; // reset any prior file's Burn X-ray
+    result.classList.remove('burn-silent-risk');           // undo any prior custom-BA command hiding
     renderDisplay(r);
     renderBuilder(r);
     result.hidden = false;
@@ -1348,14 +1364,37 @@ const description =
       el.hidden = false;
       return;
     }
-    const chain = a.chain.map((p) =>
+    const chainList = a.chain.map((p) =>
       `<li><span class="burn-kind k-${p.kind.toLowerCase()}">${p.kind}</span> <code>${escH(p.name)}</code>` +
       `${p.installArgs ? ` <span class="burn-args">${escH(p.installArgs)}</span>` : ''}</li>`).join('');
-    const banner = a.silentRisk
-      ? `<div class="burn-warn">⚠ <strong>Custom bootstrapper${a.baName ? ` (${escH(a.baName)})` : ''}.</strong> This bundle's front-end isn't the standard WiX one, so <code>/quiet</code> can be <strong>ignored</strong> and pop a wizard — a defect no switch fixes. Silent path: extract the chain (7-Zip opens the .exe) and drive the inner installer(s) below directly, e.g. <code>msiexec /i "App.msi" /qn /norestart</code>.</div>`
-      : `<div class="burn-ok">✓ <strong>Standard WiX bootstrapper${a.baName ? ` (${escH(a.baName)})` : ''}.</strong> It honors <code>/quiet</code>, so the silent command above should work as-is.</div>`;
-    el.innerHTML = banner +
-      `<div class="burn-chain"><div class="lbl">Wraps ${a.chain.length} package${a.chain.length === 1 ? '' : 's'} — read from the bundle's own manifest, in your browser</div><ul>${chain}</ul></div>`;
+    const chainBlock =
+      `<div class="burn-chain"><div class="lbl">Wraps ${a.chain.length} package${a.chain.length === 1 ? '' : 's'} — read from the bundle's own manifest, in your browser</div><ul>${chainList}</ul></div>`;
+
+    if (a.silentRisk) {
+      // The bundle's own /quiet won't obey — hide the misleading bundle-level commands/builder/packager
+      // (CSS, reset in render()) and give the real path: extract the chain, run the inner installers.
+      result.classList.add('burn-silent-risk');
+      const fname = lastFile ? lastFile.name : 'Installer.exe';
+      const steps = a.chain.map((p) =>
+        p.kind === 'MSI' ? `msiexec /i "${p.name}" /qn /norestart`
+        : p.kind === 'EXE' ? `.\\${p.name} ${(p.installArgs || '/quiet /norestart')}`.trim()
+        : `REM install ${p.name} silently`).join('\n');
+      const banner =
+        `<div class="burn-warn">⚠ <strong>Custom bootstrapper${a.baName ? ` (${escH(a.baName)})` : ''} — <code>/quiet</code> won't work here.</strong> This bundle's front-end isn't the standard WiX one, so it ignores the silent flag and pops a wizard — a defect no switch fixes. The bundle-level commands are hidden because they'd install interactively. Do this instead:</div>`;
+      const recipe =
+        `<div class="burn-recipe"><div class="lbl">Silent install — extract the chain first</div><ol>` +
+        `<li>Grab the extractor (built-in Windows tools only, nothing leaves your machine): ` +
+        `<a class="burn-dl" href="/Extract-BurnBundle.ps1" download>⬇ Extract-BurnBundle.ps1</a> ` +
+        `<a class="burn-dl" href="/Extract-BurnBundle.cmd" download>⬇ .cmd (drag-drop)</a>` +
+        `<div class="cmd"><code>.\\Extract-BurnBundle.ps1 -Path ".\\${escH(fname)}"</code></div>` +
+        `<div class="burn-hint">Prefer drag-and-drop? Put both files in one folder and drop your installer onto <code>Extract-BurnBundle.cmd</code>.</div></li>` +
+        `<li>From the extracted folder, run elevated:<div class="cmd"><code>${escH(steps)}</code></div></li></ol></div>`;
+      el.innerHTML = banner + chainBlock + recipe;
+    } else {
+      el.innerHTML =
+        `<div class="burn-ok">✓ <strong>Standard WiX bootstrapper${a.baName ? ` (${escH(a.baName)})` : ''}.</strong> It honors <code>/quiet</code>, so the silent command above should work as-is.</div>` +
+        chainBlock;
+    }
     el.hidden = false;
   }
 
