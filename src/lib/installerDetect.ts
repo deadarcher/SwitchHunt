@@ -464,7 +464,7 @@ function detectCore(buf: ArrayBuffer, fileName?: string): DetectionResult {
     fileName,
   };
 
-  // 2) WiX Burn bundle — section-table parse first (exact + instant, e.g. Sony Catalyst Browse's
+  // 2) WiX Burn bundle - section-table parse first (exact + instant, e.g. Sony Catalyst Browse's
   // 334 MB bundle), loose ASCII scan as the fallback for oddly-linked stubs.
   if (peHasSection(bytes, '.wixburn') || has(bytes, SIG.wixBurn)) {
     return {

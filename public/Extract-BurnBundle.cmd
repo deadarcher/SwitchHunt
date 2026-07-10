@@ -1,6 +1,6 @@
 @echo off
 REM Extract-BurnBundle.cmd  -  drag-and-drop launcher for Extract-BurnBundle.ps1
-REM From SwitchHunt (getrff.com/switchhunt). Copyright (c) 2026 Brian Vitko.
+REM From SwitchHunt (getrff.com/switchhunt). Written by Brian Vitko.
 REM Keep this file in the SAME folder as Extract-BurnBundle.ps1, then drag a WiX
 REM Burn installer .exe onto THIS file to unpack it.
 setlocal

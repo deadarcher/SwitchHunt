@@ -1,12 +1,13 @@
 /**
- * WiX Burn bundle X-ray — runs ENTIRELY in the browser, no upload.
+ * WiX Burn bundle X-ray - runs ENTIRELY in the browser, no upload.
+ * Written by Brian Vitko.
  *
  * A Burn ".exe" is a stub followed by attached CAB containers. The FIRST container (the "UX"
  * container, right after the stub) holds the bootstrapper application + a `BurnManifest.xml` that
  * describes the whole bundle: which bootstrapper drives the UI and exactly which MSIs/EXEs it chains.
  *
  * Why this matters: /quiet is parsed by the Burn ENGINE, but a bundle built with a CUSTOM bootstrapper
- * (rather than the standard WiX one) can ignore it and pop a wizard anyway — a defect you can't fix with
+ * (rather than the standard WiX one) can ignore it and pop a wizard anyway - a defect you can't fix with
  * a switch (Sony Catalyst Browse is the canonical example). Static signatures can't see that; the
  * manifest can. So we read it and tell the user the truth: "custom bootstrapper → /quiet may be ignored
  * → here's the inner chain, extract and drive the MSI directly."
@@ -18,7 +19,7 @@
 
 export interface BurnPackage {
   kind: 'MSI' | 'EXE' | 'MSP' | 'MSU' | 'package';
-  /** Best display name — the package's main payload filename (e.g. "CatalystBrowse.msi"), else its Id. */
+  /** Best display name - the package's main payload filename (e.g. "CatalystBrowse.msi"), else its Id. */
   name: string;
   /** ExePackage per-package install arguments, when the manifest carries them. */
   installArgs?: string;
@@ -75,7 +76,7 @@ export function findUxCab(b: Uint8Array): [number, number] | null {
 }
 
 /** Extract one member (by name) from a CAB, MSZIP-decompressing its folder. Returns the bytes or null.
- *  Minimal single-archive CAB reader — enough for a Burn UX container (one folder, MSZIP). Exported for tests. */
+ *  Minimal single-archive CAB reader - enough for a Burn UX container (one folder, MSZIP). Exported for tests. */
 export async function cabExtract(cab: Uint8Array, memberName: string): Promise<Uint8Array | null> {
   try {
     if (!(cab[0] === 0x4d && cab[1] === 0x53 && cab[2] === 0x43 && cab[3] === 0x46)) return null; // MSCF
@@ -102,7 +103,7 @@ export async function cabExtract(cab: Uint8Array, memberName: string): Promise<U
       folders.push({ coffStart: u32(cab, p), cCFData: u16(cab, p + 4), typeCompress: u16(cab, p + 6) });
       p += 8 + cbCFFolder;
     }
-    // Files — find the one we want.
+    // Files - find the one we want.
     let fp = coffFiles;
     let target: { cbFile: number; uoff: number; iFolder: number } | null = null;
     for (let i = 0; i < cFiles; i++) {
@@ -209,7 +210,7 @@ export async function analyzeBurn(bytes: Uint8Array): Promise<BurnAnalysis | nul
   else if (dlls.length > 0) { baType = 'standard'; baName = dlls[0].replace(/^.*[\\/]/, ''); }
 
   // A package's PRIMARY payload is the <Payload> whose Id equals the package's Id (verified against real
-  // manifests — payloads link to packages by matching Id, there is no @Package attribute). Map Id->FilePath.
+  // manifests - payloads link to packages by matching Id, there is no @Package attribute). Map Id->FilePath.
   const fileById = new Map<string, string>();
   for (let i = 0; i < uxEl.length; i++) {
     const el = uxEl[i];

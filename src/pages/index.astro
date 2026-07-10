@@ -32,7 +32,7 @@ const description =
     <label id="drop" class="drop" for="file" tabindex="0">
       <input id="file" type="file" hidden accept=".exe,.msi,.msp,application/x-msdownload,application/x-msi" />
       <div class="drop-inner">
-        <div class="drop-icon">⬇</div>
+        <div class="drop-icon"></div>
         <div class="drop-title">Drop an installer here, or click to choose</div>
         <div class="drop-hint">.exe or .msi · read locally, never uploaded</div>
       </div>
@@ -92,16 +92,16 @@ const description =
       <!-- Deployment artifacts (generated client-side). .intunewin is the hero path (self-contained,
            framework-free); the PSADT v4 wrapper is the secondary "if you already live in PSADT" option. -->
       <div id="r-deploy" hidden>
-        <p class="deploy-warn">⚠ Test the install command in a throwaway VM before you package or deploy it. These switches are detected/curated best-effort - a wrong one silently ships a broken package to every machine.</p>
+        <p class="deploy-warn">Test the install command in a throwaway VM before you package or deploy it. These switches are detected/curated best-effort - a wrong one silently ships a broken package to every machine.</p>
         <section class="deploy deploy-primary">
           <div class="deploy-head">
-            <h3>📦 Build a .intunewin <span class="rec-badge">Recommended</span></h3>
+            <h3>Build a .intunewin <span class="rec-badge">Recommended</span></h3>
             <p class="deploy-why">Your installer + the silent command in one Intune-ready package - <strong>nothing else to install</strong>. No PSADT, no framework, no PowerShell-version gotchas. Built in your browser; the file never leaves your machine.</p>
           </div>
           <div id="r-intune-body"></div>
         </section>
         <details class="deploy deploy-secondary">
-          <summary>📦 PSADT v4 wrapper (.ps1) - only if your shop standardizes on PSADT</summary>
+          <summary>PSADT v4 wrapper (.ps1) - only if your shop standardizes on PSADT</summary>
           <div id="r-psadt-body"></div>
         </details>
       </div>
@@ -118,7 +118,7 @@ const description =
 
       <!-- Opt-in best-effort switch harvest for custom/low-confidence installers -->
       <div id="r-besttry" hidden>
-        <button type="button" class="besttry-btn" id="r-besttry-btn">⚡ Try to extract switches anyway</button>
+        <button type="button" class="besttry-btn" id="r-besttry-btn">Try to extract switches anyway</button>
         <div id="r-besttry-out"></div>
       </div>
 
@@ -152,7 +152,7 @@ const description =
           <tr><td>Squirrel</td><td><code>Setup.exe --silent</code></td><td><span class="ec ec-med">Medium</span></td></tr>
           <tr><td>7-Zip / WinRAR SFX</td><td>unwrap → inner installer</td><td><span class="ec ec-med">Medium</span></td></tr>
           <tr><td>Wise (legacy)</td><td><code>setup.exe /s</code> (case-finicky)</td><td><span class="ec ec-low">Low</span></td></tr>
-          <tr><td>📚 Vendor one-offs (Citrix, Teams, AnyDesk…)</td><td>known silent string from the catalog</td><td><span class="ec ec-high">Curated</span></td></tr>
+          <tr><td>Vendor one-offs (Citrix, Teams, AnyDesk…)</td><td>known silent string from the catalog</td><td><span class="ec ec-high">Curated</span></td></tr>
           <tr><td>Custom / packed EXE</td><td>best-effort switch harvest</td><td><span class="ec ec-low">-</span></td></tr>
         </tbody>
       </table>
@@ -194,8 +194,8 @@ const description =
     </section>
 
     <p class="byline">
-      Built by <a href="/">RFF</a> - the deploy tool for admins who got tired of reverse-engineering
-      installers in Orca. Pushing this to a fleet is the boring part <a href="/">RFF automates</a>.
+      Written by Brian Vitko. Built by <a href="/">RFF</a> - the deploy tool for admins who got tired of
+      reverse-engineering installers in Orca. Pushing this to a fleet is the boring part <a href="/">RFF automates</a>.
     </p>
   </main>
 </Layout>
@@ -593,7 +593,7 @@ const description =
   let shell: Shell = 'cmd';
   let lastResult: DetectionResult | null = null;
   let lastBuf: ArrayBuffer | null = null; // retained so the "try anyway" button can re-scan the bytes
-  // The File handle itself — for large files lastBuf is only the DETECT_SLICE head (reading a
+  // The File handle itself - for large files lastBuf is only the DETECT_SLICE head (reading a
   // 300+ MB bundle fully just to sniff its stub froze the tab: Sony Catalyst Browse, 334 MB),
   // so consumers that need EVERY byte (the .intunewin build) re-read from here on demand.
   let lastFile: File | null = null;
@@ -742,11 +742,11 @@ const description =
 
     // ── Intune (.intunewin) - self-contained, no framework ──
     const ib = document.createElement('button');
-    ib.type = 'button'; ib.className = 'primary-btn'; ib.textContent = '⬇ Build .intunewin (in browser)';
+    ib.type = 'button'; ib.className = 'primary-btn'; ib.textContent = 'Build .intunewin (in browser)';
     const status = document.createElement('span'); status.className = 'iw-status';
     ib.addEventListener('click', async () => {
       if (!lastBuf || !lastFile) return;
-      // Gate on the FILE's size — for large files lastBuf is only the detection head-slice.
+      // Gate on the FILE's size - for large files lastBuf is only the detection head-slice.
       if (lastFile.size > INTUNEWIN_MAX_BYTES) {
         status.textContent = ` - this file is over ${(INTUNEWIN_MAX_BYTES / 1024 / 1024) | 0} MB; too big to package in a browser tab. Use Microsoft's IntuneWinAppUtil.exe for this one.`;
         return;
@@ -757,7 +757,7 @@ const description =
         const fullBuf = lastBuf.byteLength === lastFile.size ? lastBuf : await lastFile.arrayBuffer();
         const out = await buildIntuneWin(input.fileName, new Uint8Array(fullBuf), input.name);
         downloadBytes((input.fileName.replace(/\.[^.]+$/, '') || 'package') + '.intunewin', out);
-        status.textContent = ' ✓ built';
+        status.textContent = ' built';
       } catch (e) {
         status.textContent = ' - packaging failed: ' + (e as Error).message;
       }
@@ -802,7 +802,7 @@ const description =
 
     // ── PSADT v4 deploy script - needs the PSADT framework around it ──
     const dl = document.createElement('button');
-    dl.type = 'button'; dl.className = 'besttry-btn'; dl.textContent = '⬇ Download Invoke-AppDeployToolkit.ps1';
+    dl.type = 'button'; dl.className = 'besttry-btn'; dl.textContent = 'Download Invoke-AppDeployToolkit.ps1';
     dl.addEventListener('click', () => downloadText('Invoke-AppDeployToolkit.ps1', generatePsadt(input)));
     proot.append(dl);
     const psnote = document.createElement('p');
@@ -1221,7 +1221,7 @@ const description =
       head.className = 'catalog-head';
       const cbadge = document.createElement('span');
       cbadge.className = 'catalog-badge';
-      cbadge.textContent = '📚 From catalog';
+      cbadge.textContent = 'From catalog';
       const nm = document.createElement('span');
       nm.className = 'catalog-name';
       nm.textContent = cat.name;
@@ -1320,7 +1320,7 @@ const description =
     $('r-besttry-out').innerHTML = '';
     const bbtn = $<HTMLButtonElement>('r-besttry-btn');
     bbtn.disabled = false;
-    bbtn.textContent = '⚡ Try to extract switches anyway';
+    bbtn.textContent = 'Try to extract switches anyway';
 
     renderMsi(r.msi);
 
@@ -1357,14 +1357,14 @@ const description =
   const escH = (s: string) => s.replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c] as string));
 
   // WiX Burn: run the in-browser manifest parser (Option B) and render the verdict + chain. If it can't
-  // parse (returns null), fall back to the generic wrapper warning (Option A) — we still KNOW it's Burn.
+  // parse (returns null), fall back to the generic wrapper warning (Option A) - we still KNOW it's Burn.
   async function enrichBurn(bytes: Uint8Array) {
     let a: BurnAnalysis | null = null;
     try { a = await analyzeBurn(bytes); } catch { a = null; }
     const el = $('r-burn');
     if (!a) {
       el.innerHTML =
-        `<div class="burn-warn">⚠ <strong>This is a bootstrapper (wrapper)</strong> — it chains one or more installers inside, it's not a plain installer. <code>/quiet</code> usually works, but some vendor bundles ship a <em>custom</em> bootstrapper that ignores it and shows a wizard anyway. If that happens, extract the payloads (7-Zip opens a Burn .exe directly) and run the inner MSI / prerequisites yourself.</div>`;
+        `<div class="burn-warn"><strong>This is a bootstrapper (wrapper)</strong> - it chains one or more installers inside, it's not a plain installer. <code>/quiet</code> usually works, but some vendor bundles ship a <em>custom</em> bootstrapper that ignores it and shows a wizard anyway. If that happens, extract the payloads (7-Zip opens a Burn .exe directly) and run the inner MSI / prerequisites yourself.</div>`;
       el.hidden = false;
       return;
     }
@@ -1372,10 +1372,10 @@ const description =
       `<li><span class="burn-kind k-${p.kind.toLowerCase()}">${p.kind}</span> <code>${escH(p.name)}</code>` +
       `${p.installArgs ? ` <span class="burn-args">${escH(p.installArgs)}</span>` : ''}</li>`).join('');
     const chainBlock =
-      `<div class="burn-chain"><div class="lbl">Wraps ${a.chain.length} package${a.chain.length === 1 ? '' : 's'} — read from the bundle's own manifest, in your browser</div><ul>${chainList}</ul></div>`;
+      `<div class="burn-chain"><div class="lbl">Wraps ${a.chain.length} package${a.chain.length === 1 ? '' : 's'} - read from the bundle's own manifest, in your browser</div><ul>${chainList}</ul></div>`;
 
     if (a.silentRisk) {
-      // The bundle's own /quiet won't obey — hide the misleading bundle-level commands/builder/packager
+      // The bundle's own /quiet won't obey - hide the misleading bundle-level commands/builder/packager
       // (CSS, reset in render()) and give the real path: extract the chain, run the inner installers.
       result.classList.add('burn-silent-risk');
       const fname = lastFile ? lastFile.name : 'Installer.exe';
@@ -1384,13 +1384,13 @@ const description =
         : p.kind === 'EXE' ? `.\\${p.name} ${(p.installArgs || '/quiet /norestart')}`.trim()
         : `REM install ${p.name} silently`).join('\n');
       const banner =
-        `<div class="burn-warn">⚠ <strong>Custom bootstrapper${a.baName ? ` (${escH(a.baName)})` : ''} — <code>/quiet</code> won't work here.</strong> This bundle's front-end isn't the standard WiX one, so it ignores the silent flag and pops a wizard — a defect no switch fixes. The bundle-level commands are hidden because they'd install interactively. Do this instead:</div>`;
+        `<div class="burn-warn"><strong>Custom bootstrapper${a.baName ? ` (${escH(a.baName)})` : ''} - <code>/quiet</code> won't work here.</strong> This bundle's front-end isn't the standard WiX one, so it ignores the silent flag and pops a wizard - a defect no switch fixes. The bundle-level commands are hidden because they'd install interactively. Do this instead:</div>`;
       const recipe =
-        `<div class="burn-recipe"><div class="lbl">Silent install — extract the chain first</div><ol>` +
+        `<div class="burn-recipe"><div class="lbl">Silent install - extract the chain first</div><ol>` +
         `<li>Grab the extractor (built-in Windows tools only, nothing leaves your machine):` +
         `<div class="burn-dl-row">` +
-        `<a class="burn-dl-btn primary" href="/Extract-BurnBundle.ps1" download>⬇ Download Extract-BurnBundle.ps1</a>` +
-        `<a class="burn-dl-btn" href="/Extract-BurnBundle.cmd" download>⬇ .cmd launcher (drag-drop)</a>` +
+        `<a class="burn-dl-btn primary" href="/Extract-BurnBundle.ps1" download>Download Extract-BurnBundle.ps1</a>` +
+        `<a class="burn-dl-btn" href="/Extract-BurnBundle.cmd" download>.cmd launcher (drag-drop)</a>` +
         `</div>` +
         `<div class="cmd"><code>.\\Extract-BurnBundle.ps1 -Path ".\\${escH(fname)}"</code></div>` +
         `<div class="burn-hint">Prefer drag-and-drop? Put both files in one folder and drop your installer onto <code>Extract-BurnBundle.cmd</code>.</div></li>` +
@@ -1398,7 +1398,7 @@ const description =
       el.innerHTML = banner + chainBlock + recipe;
     } else {
       el.innerHTML =
-        `<div class="burn-ok">✓ <strong>Standard WiX bootstrapper${a.baName ? ` (${escH(a.baName)})` : ''}.</strong> It honors <code>/quiet</code>, so the silent command above should work as-is.</div>` +
+        `<div class="burn-ok"><strong>Standard WiX bootstrapper${a.baName ? ` (${escH(a.baName)})` : ''}.</strong> It honors <code>/quiet</code>, so the silent command above should work as-is.</div>` +
         chainBlock;
     }
     el.hidden = false;
@@ -1421,7 +1421,7 @@ const description =
     try {
       lastFile = file;
       // Big files: read only the head. Every engine marker (PE section table, stub strings,
-      // archive magic) sits at the front — full reads + full-buffer signature scans are what
+      // archive magic) sits at the front - full reads + full-buffer signature scans are what
       // used to freeze the tab on 300+ MB Burn bundles (Sony Catalyst Browse).
       const big = file.size > DETECT_SLICE;
       const buf = big ? await file.slice(0, DETECT_SLICE).arrayBuffer() : await file.arrayBuffer();
@@ -1523,7 +1523,7 @@ const description =
       let res = { flags: [] as string[], options: [] as string[] };
       try { res = bestEffortSwitches(lastBuf!); } catch { /* ignore */ }
       renderBestTry(res.flags, res.options);
-      btn.textContent = '⚡ Re-scan';
+      btn.textContent = 'Re-scan';
       btn.disabled = false;
     }, 30);
   });

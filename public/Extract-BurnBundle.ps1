@@ -1,6 +1,6 @@
 <#
     Extract-BurnBundle.ps1  -  from SwitchHunt (getrff.com/switchhunt)
-    Copyright (c) 2026 Brian Vitko. Free to use and share.
+    Written by Brian Vitko. Free to use and share.
 
     Unpacks a WiX "Burn" bootstrapper .exe into its real inner files (the prerequisite EXEs, the MSI,
     and the MSI's external cabs) with their PROPER names, so you can drive a silent install directly.
