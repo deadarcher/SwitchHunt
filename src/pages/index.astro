@@ -53,6 +53,10 @@ const description =
       <!-- Known silent string from the curated catalog (hard-coded, NOT read from the file) -->
       <div id="r-catalog" class="catalog" hidden></div>
 
+      <!-- WiX Burn X-ray: bootstrapper verdict + the inner chain, read from the bundle's own manifest
+           (client-side). Populated async after detection; hidden for every other engine. -->
+      <div id="r-burn" class="burn-xray" hidden></div>
+
       <!-- CMD ⇄ PowerShell: rewrites the command blocks for the chosen shell -->
       <div class="shell-toggle" id="r-shell" role="group" aria-label="Shell" hidden>
         <button type="button" class="shell-btn is-active" data-shell="cmd">CMD</button>
@@ -240,6 +244,22 @@ const description =
   }
   .result-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; }
   .result-engine { font-size: 20px; font-weight: 700; color: var(--ink); }
+
+  /* WiX Burn X-ray: verdict banner + inner-chain list, from the parsed manifest. */
+  .burn-xray { margin: 16px 0 0; display: flex; flex-direction: column; gap: 12px; }
+  .burn-warn, .burn-ok { font-size: 13.5px; line-height: 1.6; border-radius: 8px; padding: 12px 14px; text-wrap: pretty; }
+  .burn-warn { background: color-mix(in srgb, #f59e0b 12%, transparent); border: 1px solid color-mix(in srgb, #f59e0b 40%, transparent); color: var(--ink); }
+  .burn-ok   { background: color-mix(in srgb, #10b981 12%, transparent); border: 1px solid color-mix(in srgb, #10b981 38%, transparent); color: var(--ink); }
+  .burn-warn code, .burn-ok code { font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 12px; background: color-mix(in srgb, var(--ink) 8%, transparent); padding: 1px 5px; border-radius: 4px; }
+  .burn-chain .lbl { font-size: 11px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--ink-3); margin: 0 0 8px; }
+  .burn-chain ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+  .burn-chain li { display: flex; align-items: center; gap: 8px; font-size: 13.5px; color: var(--ink-2); flex-wrap: wrap; }
+  .burn-chain code { font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 12.5px; color: var(--ink); }
+  .burn-kind { flex-shrink: 0; font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 10px; font-weight: 700; letter-spacing: 0.04em; padding: 2px 6px; border-radius: 4px; color: #fff; }
+  .burn-kind.k-msi { background: #6366f1; }
+  .burn-kind.k-exe { background: #0ea5e9; }
+  .burn-kind.k-msp, .burn-kind.k-msu, .burn-kind.k-package { background: #64748b; }
+  .burn-args { font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 11px; color: var(--ink-3); }
   .result-file {
     font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 12px;
     color: var(--ink-3); margin-top: 4px; word-break: break-all;
@@ -531,6 +551,7 @@ const description =
 <script>
   import { detectInstaller, bestEffortSwitches } from '../lib/installerDetect';
   import type { DetectionResult } from '../lib/installerDetect';
+  import { analyzeBurn, type BurnAnalysis } from '../lib/burn';
   import type { MsiAnalysis } from '../lib/msi';
   import { lookupCatalog } from '../lib/catalog';
   import { generatePsadt, psadtCommands, detectionRule, defaultDetectionKind,
@@ -1306,10 +1327,36 @@ const description =
   // Full render for a freshly dropped file: display + (re)build the stateful builder, then reveal.
   function render(r: DetectionResult) {
     lastResult = r;
+    $('r-burn').hidden = true; $('r-burn').innerHTML = ''; // reset any prior file's Burn X-ray
     renderDisplay(r);
     renderBuilder(r);
     result.hidden = false;
     result.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  }
+
+  const escH = (s: string) => s.replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c] as string));
+
+  // WiX Burn: run the in-browser manifest parser (Option B) and render the verdict + chain. If it can't
+  // parse (returns null), fall back to the generic wrapper warning (Option A) — we still KNOW it's Burn.
+  async function enrichBurn(bytes: Uint8Array) {
+    let a: BurnAnalysis | null = null;
+    try { a = await analyzeBurn(bytes); } catch { a = null; }
+    const el = $('r-burn');
+    if (!a) {
+      el.innerHTML =
+        `<div class="burn-warn">⚠ <strong>This is a bootstrapper (wrapper)</strong> — it chains one or more installers inside, it's not a plain installer. <code>/quiet</code> usually works, but some vendor bundles ship a <em>custom</em> bootstrapper that ignores it and shows a wizard anyway. If that happens, extract the payloads (7-Zip opens a Burn .exe directly) and run the inner MSI / prerequisites yourself.</div>`;
+      el.hidden = false;
+      return;
+    }
+    const chain = a.chain.map((p) =>
+      `<li><span class="burn-kind k-${p.kind.toLowerCase()}">${p.kind}</span> <code>${escH(p.name)}</code>` +
+      `${p.installArgs ? ` <span class="burn-args">${escH(p.installArgs)}</span>` : ''}</li>`).join('');
+    const banner = a.silentRisk
+      ? `<div class="burn-warn">⚠ <strong>Custom bootstrapper${a.baName ? ` (${escH(a.baName)})` : ''}.</strong> This bundle's front-end isn't the standard WiX one, so <code>/quiet</code> can be <strong>ignored</strong> and pop a wizard — a defect no switch fixes. Silent path: extract the chain (7-Zip opens the .exe) and drive the inner installer(s) below directly, e.g. <code>msiexec /i "App.msi" /qn /norestart</code>.</div>`
+      : `<div class="burn-ok">✓ <strong>Standard WiX bootstrapper${a.baName ? ` (${escH(a.baName)})` : ''}.</strong> It honors <code>/quiet</code>, so the silent command above should work as-is.</div>`;
+    el.innerHTML = banner +
+      `<div class="burn-chain"><div class="lbl">Wraps ${a.chain.length} package${a.chain.length === 1 ? '' : 's'} — read from the bundle's own manifest, in your browser</div><ul>${chain}</ul></div>`;
+    el.hidden = false;
   }
 
   // Re-skin the commands for the chosen shell WITHOUT rebuilding the builder form (keeps typed
@@ -1337,6 +1384,9 @@ const description =
       const r = detectInstaller(buf, file.name, big ? file.size : undefined);
       setStatus('');
       render(r);
+      // WiX Burn: crack the bundle manifest open (async) and enrich the result with the real chain +
+      // a silent-safety verdict. The head slice we read already contains the UX container.
+      if (r.engine === 'wix-burn') void enrichBurn(new Uint8Array(buf));
     } catch (e) {
       setStatus('Could not read that file. Try another.', true);
     }
