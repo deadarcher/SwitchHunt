@@ -272,7 +272,11 @@ const description =
   .burn-recipe ol { margin: 0; padding-left: 20px; display: flex; flex-direction: column; gap: 10px; font-size: 13.5px; line-height: 1.6; color: var(--ink-2); }
   .burn-recipe .cmd { margin-top: 6px; background: #0b0f17; border: 1px solid var(--border); border-radius: 8px; padding: 10px 12px; overflow-x: auto; }
   .burn-recipe .cmd code { font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 12.5px; color: #e5e9f0; white-space: pre; }
-  .burn-dl { display: inline-block; margin-left: 4px; font-weight: 600; color: var(--brand); text-decoration: underline; text-underline-offset: 2px; }
+  .burn-dl-row { display: flex; flex-wrap: wrap; gap: 10px; margin: 10px 0 4px; }
+  .burn-dl-btn { display: inline-flex; align-items: center; gap: 6px; padding: 9px 16px; border-radius: 8px; font-size: 13.5px; font-weight: 600; text-decoration: none; border: 1.5px solid var(--brand); color: var(--brand); background: transparent; transition: background 0.12s, color 0.12s; }
+  .burn-dl-btn:hover { background: color-mix(in srgb, var(--brand) 12%, transparent); }
+  .burn-dl-btn.primary { background: var(--brand); color: #fff; }
+  .burn-dl-btn.primary:hover { background: color-mix(in srgb, var(--brand) 88%, black); }
   .burn-hint { margin-top: 6px; font-size: 12px; color: var(--ink-3); line-height: 1.5; }
   .burn-hint code { font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 11px; }
   .result-file {
@@ -1383,9 +1387,11 @@ const description =
         `<div class="burn-warn">⚠ <strong>Custom bootstrapper${a.baName ? ` (${escH(a.baName)})` : ''} — <code>/quiet</code> won't work here.</strong> This bundle's front-end isn't the standard WiX one, so it ignores the silent flag and pops a wizard — a defect no switch fixes. The bundle-level commands are hidden because they'd install interactively. Do this instead:</div>`;
       const recipe =
         `<div class="burn-recipe"><div class="lbl">Silent install — extract the chain first</div><ol>` +
-        `<li>Grab the extractor (built-in Windows tools only, nothing leaves your machine): ` +
-        `<a class="burn-dl" href="/Extract-BurnBundle.ps1" download>⬇ Extract-BurnBundle.ps1</a> ` +
-        `<a class="burn-dl" href="/Extract-BurnBundle.cmd" download>⬇ .cmd (drag-drop)</a>` +
+        `<li>Grab the extractor (built-in Windows tools only, nothing leaves your machine):` +
+        `<div class="burn-dl-row">` +
+        `<a class="burn-dl-btn primary" href="/Extract-BurnBundle.ps1" download>⬇ Download Extract-BurnBundle.ps1</a>` +
+        `<a class="burn-dl-btn" href="/Extract-BurnBundle.cmd" download>⬇ .cmd launcher (drag-drop)</a>` +
+        `</div>` +
         `<div class="cmd"><code>.\\Extract-BurnBundle.ps1 -Path ".\\${escH(fname)}"</code></div>` +
         `<div class="burn-hint">Prefer drag-and-drop? Put both files in one folder and drop your installer onto <code>Extract-BurnBundle.cmd</code>.</div></li>` +
         `<li>From the extracted folder, run elevated:<div class="cmd"><code>${escH(steps)}</code></div></li></ol></div>`;
