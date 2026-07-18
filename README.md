@@ -50,13 +50,17 @@ No backend. `dist/` is plain static files; host it on GitHub Pages, Cloudflare P
 
 ### Docker
 
-No Node install needed - the image builds the site and serves it with nginx:
+No clone, no Node - a prebuilt image is published to GHCR on every push to `main`:
+
+```bash
+docker run -d --name switchhunt -p 4321:80 ghcr.io/deadarcher/switchhunt
+```
+
+Or build it yourself from a clone (`nginx` serving the static `dist/`):
 
 ```bash
 docker compose up -d --build   # http://localhost:4321
 ```
-
-Or without compose:
 
 ```bash
 docker build -t switchhunt .
