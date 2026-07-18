@@ -1,0 +1,8 @@
+services:
+  switchhunt:
+    build: .
+    image: switchhunt
+    container_name: switchhunt
+    ports:
+      - "4321:80"
+    restart: unless-stopped

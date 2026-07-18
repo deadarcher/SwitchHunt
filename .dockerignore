@@ -1,0 +1,15 @@
+# deps and build output are produced inside the image
+node_modules
+dist
+.astro
+
+# repo/tooling noise the build never reads
+.git
+.claude
+.github
+*.log
+.env
+.env.*
+Dockerfile
+compose.yaml
+.dockerignore

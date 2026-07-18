@@ -48,6 +48,23 @@ npm run build    # static output in dist/ - deploy anywhere
 
 No backend. `dist/` is plain static files; host it on GitHub Pages, Cloudflare Pages, Netlify, or `npx serve dist`.
 
+### Docker
+
+No Node install needed - the image builds the site and serves it with nginx:
+
+```bash
+docker compose up -d --build   # http://localhost:4321
+```
+
+Or without compose:
+
+```bash
+docker build -t switchhunt .
+docker run -d --name switchhunt -p 4321:80 switchhunt
+```
+
+Same 100% client-side guarantee - the container only serves static files; installers you drop still never leave your browser.
+
 ## How it works (short version)
 
 - **Engine detection** (`src/lib/installerDetect.ts`): byte signatures + PE version-resource parsing for metadata. `.NET` requires the `_CorExeMain` stub (not just an `mscoree.dll` string) to avoid false positives, etc.
