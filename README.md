@@ -65,6 +65,8 @@ docker run -d --name switchhunt -p 4321:80 switchhunt
 
 Same 100% client-side guarantee - the container only serves static files; installers you drop still never leave your browser.
 
+Thanks to [timwelchnz](https://www.reddit.com/user/timwelchnz/) for suggesting this install option.
+
 ## How it works (short version)
 
 - **Engine detection** (`src/lib/installerDetect.ts`): byte signatures + PE version-resource parsing for metadata. `.NET` requires the `_CorExeMain` stub (not just an `mscoree.dll` string) to avoid false positives, etc.
