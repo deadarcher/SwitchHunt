@@ -6,8 +6,8 @@
  *
  *    1. deadarcher/SwitchHunt      src/lib/msi.ts   (public, the tool)
  *    2. deadarcher/rff-marketing   src/lib/msi.ts   (hosted at getrff.com/switchhunt)
- *    3. (planned) RFF.Web - MSI property hints in the deploy wizard.
- *                 See docs/design/msi-property-hints-in-wizard.md
+ *    3. deadarcher/RFF (private)   platform/src/RFF.Web/src/lib/msi.ts
+ *                 (the deploy wizard's SwitchHunt panel; docs/design/msi-property-hints-in-wizard.md)
  *
  *  A fix applied to one copy and not the others is not theoretical. Measured 2026-07-29:
  *    - the SwitchHunt catalog drifted 8 entries in 11 days, nothing detected it

@@ -6,8 +6,8 @@
  *
  *    1. deadarcher/SwitchHunt      src/lib/installerDetect.ts   (public, the tool)
  *    2. deadarcher/rff-marketing   src/lib/installerDetect.ts   (hosted at getrff.com/switchhunt)
- *    3. (planned) RFF.Web - MSI property hints in the deploy wizard.
- *                 See docs/design/msi-property-hints-in-wizard.md
+ *    3. deadarcher/RFF (private)   platform/src/RFF.Web/src/lib/installerDetect.ts
+ *                 (the deploy wizard's SwitchHunt panel; docs/design/msi-property-hints-in-wizard.md)
  *
  *  A fix applied to one copy and not the others is not theoretical. Measured 2026-07-29:
  *    - the SwitchHunt catalog drifted 8 entries in 11 days, nothing detected it
@@ -447,7 +447,9 @@ function detectCore(buf: ArrayBuffer, fileName?: string): DetectionResult {
   if (startsWith(bytes, SIG.cfb)) {
     // Deep-parse the MSI database (property matrix + uninstall-replay). Never throws out - a
     // parse failure just falls back to the generic file-path commands below.
-    let analysis: MsiAnalysis | null = null;
+    // (No initializer: both branches assign, and an `= null` here is a dead store RFF.Web's
+    // stricter lint rejects - the copies must stay byte-identical, so it is dead everywhere.)
+    let analysis: MsiAnalysis | null;
     try { analysis = analyzeMsi(buf); } catch { analysis = null; }
     const code = analysis?.productCode;
     // Prefer the real ProductCode GUID for repair/uninstall - it works regardless of the .msi's path.
