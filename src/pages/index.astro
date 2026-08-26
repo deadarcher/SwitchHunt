@@ -651,13 +651,47 @@ const description =
     statusEl.hidden = !msg;
   }
 
+  /**
+   * Copy a command, with a fallback that still works when the clipboard API is unavailable.
+   *
+   * The old version swallowed the failure ("clipboard blocked - ignore"), so a blocked write meant
+   * the button did NOTHING: no "Copied!", no error, no alternative. Indistinguishable from a broken
+   * button, which is the worst outcome on the one control this whole page exists to offer.
+   *
+   * This is not hypothetical. uBlock Origin ships ClickFix protection that watches for a page
+   * writing shell-command-shaped text to the clipboard - which is a fair description of what
+   * SwitchHunt legitimately does - and blocks it. Same mechanism as the attack, opposite intent.
+   * So on a meaningful share of admin browsers this path is the NORMAL one, not the edge case.
+   *
+   * Fallback selects the command text so Ctrl+C works, and the button says so.
+   */
   async function copyText(text: string, btn: HTMLButtonElement) {
+    const flash = (msg: string, ms = 1400) => {
+      const old = btn.dataset.label ?? btn.textContent ?? 'Copy';
+      btn.dataset.label = old;
+      btn.textContent = msg;
+      setTimeout(() => { btn.textContent = btn.dataset.label ?? 'Copy'; }, ms);
+    };
+
     try {
       await navigator.clipboard.writeText(text);
-      const old = btn.textContent;
-      btn.textContent = 'Copied!';
-      setTimeout(() => { btn.textContent = old; }, 1400);
-    } catch { /* clipboard blocked - ignore */ }
+      flash('Copied!');
+      return;
+    } catch { /* blocked or unavailable - fall through to selection */ }
+
+    // Select the visible command so the keyboard shortcut still works. Selection is a plain DOM
+    // operation with nothing for an extension to intercept, so it survives where the API does not.
+    const code = btn.parentElement?.querySelector('code');
+    if (code) {
+      const range = document.createRange();
+      range.selectNodeContents(code);
+      const sel = window.getSelection();
+      sel?.removeAllRanges();
+      sel?.addRange(range);
+      flash('Press Ctrl+C', 2600);
+      return;
+    }
+    flash('Copy blocked', 2600);
   }
 
   /** Build a labeled command row with its own wired Copy button. */
