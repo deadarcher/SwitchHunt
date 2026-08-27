@@ -65,6 +65,17 @@ const description =
 
       <div id="r-commands"></div>
 
+      {/* Shown when PowerShell is selected and NOTHING on screen changed. Without it the toggle
+          looks broken on every MSI: msiexec is on the PATH so it must NOT get .\ (".\msiexec" does
+          not exist and PowerShell errors), and the .msi is an argument rather than the program, so
+          both shells take the identical line. Correct behaviour that reads as a dead button. */}
+      <p class="shell-hint" id="r-shell-same" hidden>
+        <strong>No changes needed.</strong> These commands are identical in both shells -
+        <code>msiexec</code> and friends are on the PATH, so they take no <code>.\</code> prefix
+        (<code>.\msiexec</code> would not resolve). The rewrite only applies to an executable in
+        the current folder, or a quoted path.
+      </p>
+
       <p class="shell-hint" id="r-shell-hint" hidden>
         PowerShell: current-folder executables get <code>.\</code> and quoted paths get the
         <code>&amp;</code> call operator (applied above). If an argument itself contains quotes
@@ -1390,7 +1401,19 @@ const description =
     // a catalog match). MSIX is PowerShell-native (cmdlets), so the toggle doesn't apply there.
     const shellable = (r.commands.length > 0 || showCat) && r.engine !== 'msix';
     $('r-shell').hidden = !shellable;
-    $('r-shell-hint').hidden = !(shell === 'pwsh' && shellable);
+
+    // Did the rewrite ACTUALLY change anything on screen? Compare each command against its own
+    // shellify() output rather than guessing from the engine: the answer depends on the command
+    // text (msiexec -> unchanged, setup.exe -> gains .\), not on the installer type.
+    const rewritten = r.commands.some(c => {
+      const cmd = showCat && cat?.uninstall && /uninstall/i.test(c.label)
+        ? cat.uninstall.replaceAll('{file}', cmdFn)
+        : c.cmd;
+      return shellify(cmd) !== cmd;
+    });
+    const pwshOn = shell === 'pwsh' && shellable;
+    $('r-shell-hint').hidden = !(pwshOn && rewritten);
+    $('r-shell-same').hidden = !(pwshOn && !rewritten);
 
     // Deployment artifacts (PSADT v4 + Intune) - uses the catalog command if shown, else detection.
     const deployEl = $('r-deploy');
