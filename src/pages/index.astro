@@ -637,7 +637,12 @@ const description =
       are left untouched. */
   function shellify(cmd: string): string {
     if (shell !== 'pwsh') return cmd;
-    const s = cmd.replace(/%([A-Za-z_][A-Za-z0-9_()]*)%/g, '$env:$1');
+    // BRACES ARE REQUIRED, not cosmetic. %ProgramFiles(x86)% became $env:ProgramFiles(x86),
+    // which PowerShell parses as $env:ProgramFiles followed by a call to a command named x86 -
+    // "The term 'x86' is not recognized". The command did not run AT ALL. ${env:NAME} is valid
+    // for every variable name including parenthesised ones, so it is used unconditionally.
+    // Verified on hardware 2026-08-27 (brianhp3): argv then matches the CMD form byte for byte.
+    const s = cmd.replace(/%([A-Za-z_][A-Za-z0-9_()]*)%/g, '${env:$1}');
     if (s.startsWith('"')) return '& ' + s;                 // quoted path → call operator
     const head = s.split(/\s/, 1)[0];
     const onPath = /^(msiexec|sc|net|reg|wusa|rundll32|dism|powershell|pwsh|cmd)(\.exe)?$/i.test(head);
