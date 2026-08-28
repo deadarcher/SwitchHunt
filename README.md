@@ -2,7 +2,7 @@
 
 **Drop a Windows installer in your browser → get its silent-install switches.** No upload, no signup, no agent. The file you drop is read **entirely in your browser** - it never touches a server.
 
-**Use it now (hosted):** https://getrff.com/switchhunt
+**Use it now (hosted):** https://getrff.com/switchhunt/
 
 Works on ~85% of installers out of the box, plus a curated catalog for the painful vendor one-offs.
 
