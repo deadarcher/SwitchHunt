@@ -374,7 +374,7 @@ const OPT_KW = /(server|port|hostname|host|username|password|silent|unattended|u
  * config options (+ the MSI [PROP]/`_Set` signals). Expect false positives; this is an opt-in "try
  * anyway", not the authoritative read. Names only.
  */
-export function bestEffortSwitches(buf: ArrayBuffer): { flags: string[]; options: string[] } {
+export function bestEffortSwitches(buf: ArrayBuffer): { flags: string[]; options: string[]; switches: string[] } {
   const bytes = new Uint8Array(buf);
   const reg = bytes.subarray(0, Math.min(bytes.length, 96 << 20));
   let a = '', w = '';
