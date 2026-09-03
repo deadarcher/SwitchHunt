@@ -255,20 +255,29 @@ function readCompoundFile(buf: ArrayBuffer): Cfb | null {
   for (let k = 0; k < dirSecs.length; k++) dir.set(u8.subarray(sectorOff(dirSecs[k]), sectorOff(dirSecs[k]) + sectorSize), k * sectorSize);
   const ddv = new DataView(dir.buffer, dir.byteOffset, dir.byteLength);
 
-  interface Entry { name: string; type: number; start: number; size: number; }
+  interface Entry { name: string; type: number; start: number; size: number; left: number; right: number; child: number; }
   const entries: Entry[] = [];
   for (let base = 0; base + 128 <= dir.length; base += 128) {
     const type = dir[base + 0x42];          // 0 unused, 1 storage, 2 stream, 5 root
-    if (type !== 1 && type !== 2 && type !== 5) continue;
     const nameLen = ddv.getUint16(base + 0x40, true);
     const chars = Math.max(0, Math.floor(nameLen / 2) - 1);
     let name = '';
     for (let c = 0; c < chars; c++) name += String.fromCharCode(ddv.getUint16(base + c * 2, true));
-    entries.push({ name, type, start: ddv.getUint32(base + 0x74, true), size: ddv.getUint32(base + 0x78, true) });
+    // Pushed at its real INDEX including unused slots, because the sibling/child pointers below are
+    // directory indices - compacting the array would make every pointer wrong.
+    entries.push({
+      name, type,
+      start: ddv.getUint32(base + 0x74, true),
+      size:  ddv.getUint32(base + 0x78, true),
+      left:  ddv.getUint32(base + 0x44, true),
+      right: ddv.getUint32(base + 0x48, true),
+      child: ddv.getUint32(base + 0x4c, true),
+    });
   }
 
   // The root entry's stream IS the mini stream (container for all sub-cutoff streams).
   const root = entries.find((e) => e.type === 5);
+  const rootIdx = entries.findIndex((e) => e.type === 5);
   const miniStream = root ? readBig(root.start, root.size) : new Uint8Array(0);
   const readMini = (start: number, size: number): Uint8Array => {
     const out = new Uint8Array(size);
@@ -283,9 +292,34 @@ function readCompoundFile(buf: ArrayBuffer): Cfb | null {
     return out;
   };
 
-  // Map decoded stream name → entry (stream entries only; strip the 0x4840 table marker).
+  // Map decoded stream name → entry, walking ONLY THE ROOT STORAGE'S OWN CHILDREN.
+  //
+  // This used to scan every directory entry linearly, on the reasoning that the red-black tree order
+  // does not matter when you just want a stream by name. It does matter, because names are only
+  // unique WITHIN a storage. A multi-language MSI embeds each language as a sub-storage transform,
+  // and every one of those carries its own _StringPool, _StringData and Property. Sony's
+  // CatalystBrowse.msi has four - 1041.mst, 2052.mst, 1031.mst, 1036.mst - so the file holds FIVE
+  // _StringPool streams. A flat scan let the last one win, and the reader silently decoded the whole
+  // database against the FRENCH transform's pool: _Columns came back as "{{Erreur [1]. }}" and
+  // "Avertissement [1]." instead of table names, every table lookup returned null, and the page
+  // showed nothing for an MSI that Windows Installer reads perfectly (28 properties).
+  //
+  // It failed silently and completely, which is the worst shape: no error, no partial result, just
+  // an MSI that "has no properties".
   const byName = new Map<string, Entry>();
-  for (const e of entries) {
+  const NOSTREAM = 0xffffffff;
+  const seen = new Set<number>();
+  const stack: number[] = [];
+  if (rootIdx >= 0 && entries[rootIdx].child !== NOSTREAM) stack.push(entries[rootIdx].child);
+  while (stack.length) {
+    const idx = stack.pop()!;
+    if (idx === NOSTREAM || idx >= entries.length || seen.has(idx)) continue;
+    seen.add(idx);
+    const e = entries[idx];
+    // Siblings are part of THIS level; a child pointer descends into a sub-storage, so it is
+    // deliberately not followed - that is the whole point.
+    if (e.left !== NOSTREAM) stack.push(e.left);
+    if (e.right !== NOSTREAM) stack.push(e.right);
     if (e.type !== 2 || !e.name) continue;
     const isTable = e.name.charCodeAt(0) === TABLE_PREFIX;
     byName.set(decodeStreamName(isTable ? e.name.slice(1) : e.name), e);
