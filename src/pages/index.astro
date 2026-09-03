@@ -1687,7 +1687,7 @@ const description =
   });
 
   // "Try anyway" best-effort harvest (static button, wired once)
-  function renderBestTry(flags: string[], options: string[]) {
+  function renderBestTry(flags: string[], options: string[], switches: string[] = []) {
     const out = $('r-besttry-out');
     out.innerHTML = '';
     const disc = document.createElement('p');
@@ -1711,9 +1711,12 @@ const description =
       }
       out.append(h, chips);
     };
+    // First, because it is the strongest signal in the list: a leading / or - is the vendor
+    // documenting their own tool, not us guessing that an identifier looks option-shaped.
+    section('Switches found in the binary’s own help text', switches);
     section('Likely silent flags', flags);
     section('Candidate option names', options);
-    if (!flags.length && !options.length) {
+    if (!flags.length && !options.length && !switches.length) {
       const p = document.createElement('p');
       p.className = 'notes';
       p.textContent = 'Nothing switch-like turned up in the readable strings.';
@@ -1727,9 +1730,9 @@ const description =
     btn.textContent = 'Scanning…';
     // defer so the label repaints before the (synchronous) scan runs
     setTimeout(() => {
-      let res = { flags: [] as string[], options: [] as string[] };
+      let res = { flags: [] as string[], options: [] as string[], switches: [] as string[] };
       try { res = bestEffortSwitches(lastBuf!); } catch { /* ignore */ }
-      renderBestTry(res.flags, res.options);
+      renderBestTry(res.flags, res.options, res.switches ?? []);
       btn.textContent = 'Re-scan';
       btn.disabled = false;
     }, 30);

@@ -408,7 +408,141 @@ export function bestEffortSwitches(buf: ArrayBuffer): { flags: string[]; options
   for (const m of text.matchAll(/\[([A-Z][A-Z0-9_]{2,})\]/g)) if (isCustomProp(m[1])) options.add(m[1]);          // MSI [PROP] refs
   for (const m of text.matchAll(/\b([A-Z][A-Z0-9_]{2,}?)_Set(?:Default)?(?:_\d+)?\b/g)) if (isCustomProp(m[1])) options.add(m[1]); // AI _Set CAs
 
-  return { flags: [...flags].sort(), options: [...options].sort().slice(0, 120) };
+  // Both harvests answer "what does this take", so they merge into one list. The written form wins
+  // the casing when a token appears both ways (/verbose beats VERBOSE) - the vendor's own spelling
+  // in their own usage text is the one worth showing an operator.
+  // WIDE TEXT ONLY, for the same reason the identifier harvest above is wide-only, and it is not a
+  // nicety. Run over the windows-1252 decode as well and a compressed payload - an MSI cabinet, a 7z
+  // SFX - decodes to random letters that produce 60 entries of pure garbage (/a3zeR, -A2p, /a-0),
+  // burying any real switch. Measured on PowerShell 7.6.5, GlobalProtect 6.2.8 and the .NET 4.5.2
+  // web installer: all noise, no signal. Compressed bytes almost never form plausible UTF-16 runs of
+  // ASCII letters, so the wide decode is naturally self-filtering.
+  const written = harvestWrittenSwitches(w);
+  const bare = new Set(written.map((s) => s.replace(/^[-/]+/, '').toLowerCase()));
+  const verbs = harvestCapsVerbTable(w).filter((v) => !bare.has(v.toLowerCase()));
+
+  return {
+    flags: [...flags].sort(),
+    options: [...options].sort().slice(0, 120),
+    switches: [...written, ...verbs].slice(0, 80),
+  };
+}
+
+/**
+ * Switches the binary DOCUMENTS ABOUT ITSELF - `/verbose`, `-force`, `--dry-run` - lifted from its
+ * own embedded usage text.
+ *
+ * WHY THIS EXISTS. The identifier harvest above looks for things that LOOK like config options, and
+ * it has two blind spots that hid every real switch of Trellix's FireEyeAgentCleanupToolCmd
+ * (reported 2026-09-03, 1 of 9 documented switches surfaced):
+ *
+ *   1. `compound()` rejects ALL-CAPS tokens (`id !== id.toUpperCase()`), and that binary's entire
+ *      verb table is ALL-CAPS - CLEANUP CLEAN REMOVE DETECT QUIET VERBOSE - because it dispatches on
+ *      arg.ToUpper(). That is an ordinary .NET pattern, not an oddity.
+ *   2. Even allowing caps, OPT_KW gates on config words (server, port, path, install...). "clean",
+ *      "verbose", "detect" and "remove" are none of those. They are VERBS, and no keyword list of
+ *      config nouns will ever contain them.
+ *
+ * A leading `/` or `-` sidesteps both, and it is a much stronger signal than any vocabulary: it is
+ * the vendor writing down how to invoke their own tool. The binary said
+ * `...exe /run=MsiApi,Registry /detect /verbose` in plain text the whole time.
+ *
+ * Precision comes from the boundaries, not from a keyword list. The lookbehind refuses anything
+ * preceded by a word character, `:`, `/`, `\`, `.`, `<` or `>`, which is what separates a real
+ * switch from a URL (`http://x`), a path (`a/b`), a date (`2020/01/01`), a format specifier
+ * (`{0:yyyy/MM/dd}`), a closing tag (`</div>`) and prose (`and/or`).
+ */
+function harvestWrittenSwitches(text: string): string[] {
+  // Not switches, however they are written: units, prose fragments and markup that survive the
+  // boundary test often enough to be worth naming.
+  const STOP = new Set([
+    'or', 'and', 'no', 'yes', 'on', 'off', 'to', 'in', 'of', 'is', 'as', 'at', 'by',
+    'div', 'span', 'html', 'body', 'head', 'br', 'li', 'ul', 'ol', 'td', 'tr', 'th', 'p', 'a', 'b', 'i',
+    'sec', 'secs', 'min', 'mins', 'ms', 'kb', 'mb', 'gb', 'am', 'pm', 'utc',
+    'null', 'true', 'false', 'nan',
+  ]);
+
+  const seen = new Map<string, string>();   // lowercase -> the casing the vendor wrote
+  // Terminator is "anything that is not a switch character", NOT a punctuation whitelist. A string
+  // in a binary ends at a NUL or a .NET #US length prefix, not at a space - which is exactly why a
+  // whitelist version of this found /detect and /run but missed /verbose and /Reboot, both of which
+  // are followed immediately by a length byte.
+  const re = /(?<![\w:/\\.<>-])([-/]{1,2})([A-Za-z][A-Za-z0-9_-]{1,29})(?![\w-])/g;
+  let scanned = 0;
+  for (const m of text.matchAll(re)) {
+    if (++scanned > 200_000) break;              // safety bound, same spirit as the identifier scan
+    const name = m[2];
+    const key = name.toLowerCase();
+    if (STOP.has(key)) continue;
+    if (/^\d/.test(name)) continue;
+    // Reject hex-ish / random-looking tokens. Even in the wide decode a little binary data survives
+    // as plausible characters and arrives as /A3B4C7, -b4f5g, -Q-U3.
+    //
+    // The discriminator is letter/digit ALTERNATION, not vowels. A vowel test looks reasonable and
+    // is wrong: it throws away /clr, /x64 and /x86, which are real switches on the .NET web
+    // installer. Random hex alternates repeatedly (A|3|B|4|C|7 = 5 runs) while a real name changes
+    // at most once (x|64, A|1).
+    const runsOf = name.match(/[A-Za-z]+|\d+/g) ?? [];
+    if (runsOf.length > 2) continue;
+    if (!seen.has(key)) seen.set(key, `${m[1]}${name}`);
+  }
+  return [...seen.values()].sort((a, b) => a.replace(/^[-/]+/, '').toLowerCase()
+                                            .localeCompare(b.replace(/^[-/]+/, '').toLowerCase()))
+                           .slice(0, 60);
+}
+
+/**
+ * The ALL-CAPS verb table a tool dispatches on, e.g. `switch (arg.ToUpperInvariant())`.
+ *
+ * Trellix's AgentCleanupTool stores its whole command set this way - CLEANUP CLEAN REMOVE DETECT
+ * FIXMSI QUIET VERBOSE ... - and NONE of it survives the identifier harvest: `compound()` drops
+ * all-caps outright, and `OPT_KW` only knows config nouns, never verbs. `/clean` never appears with
+ * a slash anywhere in the file, so the written-switch harvest cannot see it either. It is a real
+ * switch that is invisible to every other path.
+ *
+ * The signal is DENSITY, not vocabulary. A dispatch table is a tight run of caps tokens separated
+ * only by string terminators, so isolated constants (GUID, HKEY, ERROR) never qualify - it takes a
+ * run of several before any of them is reported. That keeps this from becoming a caps-word dump.
+ */
+function harvestCapsVerbTable(wide: string): string[] {
+  const RUN_GAP = 4;        // chars between tokens; #US length prefixes are 1-2
+  const MIN_RUN = 5;        // a table, not a coincidence
+  const NOISE = /^(TRUE|FALSE|NULL|NONE|ERROR|WARN|INFO|DEBUG|TRACE|HKEY|HKLM|HKCU|GUID|UUID|UTF|ASCII|JSON|HTTP|HTTPS|WIN32|X64|X86|AMD64|SYSTEM|WINDOWS|PROGRAM|COMMON|APPDATA|TEMP)$/;
+
+  const toks: { v: string; s: number; e: number }[] = [];
+  for (const m of wide.matchAll(/[A-Z][A-Z0-9]{3,23}/g)) {
+    toks.push({ v: m[0], s: m.index!, e: m.index! + m[0].length });
+  }
+
+  // A dispatch table is a table of COMMANDS, and command tables in the wild almost always contain at
+  // least one of these. A run of caps that contains none of them is something else - and it usually
+  // is: a single-file .NET bundle's embedded resource names (ASSEMBLIES, CLASSES, CLRDEBUGINFO,
+  // AUXILIARY) form a dense space-free run that passes every structural test and is pure noise.
+  // Measured on RFF.Agent.exe, which produced 30+ of them before this gate.
+  const VERB_ANCHOR = /^(HELP|QUIET|SILENT|VERBOSE|INSTALL|UNINSTALL|CLEAN|CLEANUP|REMOVE|DETECT|FORCE|LIST|VERSION|REPAIR|UPGRADE|EXTRACT|STATUS|START|STOP|RESTART|ENABLE|DISABLE|BACKUP|RESTORE|IMPORT|EXPORT|SCAN|REBOOT)$/;
+
+  const out = new Set<string>();
+  let run: typeof toks = [];
+  const flush = () => {
+    if (run.length >= MIN_RUN && run.some((t) => VERB_ANCHOR.test(t.v)))
+      for (const t of run) if (!NOISE.test(t.v)) out.add(t.v);
+    run = [];
+  };
+  for (const t of toks) {
+    if (run.length) {
+      const prev = run[run.length - 1];
+      const gap = wide.slice(prev.e, t.s);
+      // A SPACE in the gap means prose, not a table. Caps prose is common - licence headers
+      // ("THE SOFTWARE IS PROVIDED AS IS, WITHOUT WARRANTY") and banner text - and without this it
+      // sails through the density test and reports ASSEMBLIES, AUXILIARY, ADDITIONAL as switches
+      // (measured on RFF.Agent.exe). A #US string table separates entries with length prefixes and
+      // NULs, never spaces, so this splits the two cleanly.
+      if (t.s - prev.e > RUN_GAP || /[ \t]/.test(gap)) flush();
+    }
+    run.push(t);
+  }
+  flush();
+  return [...out].sort().slice(0, 60);
 }
 
 /**
