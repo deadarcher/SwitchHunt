@@ -53,7 +53,11 @@ function crc32(b: Uint8Array): number {
 
 // ── minimal STORE (no-compression) zip writer ────────────────────────────────
 interface ZipFile { name: string; data: Uint8Array; }
-function zipStore(files: ZipFile[]): Uint8Array {
+// Uint8Array<ArrayBuffer>, not a bare Uint8Array. Since TypeScript 5.7 the default is
+// Uint8Array<ArrayBufferLike>, which is NOT assignable to BufferSource - so passing the result
+// straight to subtle.digest/encrypt failed to typecheck even though it is correct at runtime.
+// The array is always built here over a real ArrayBuffer, so saying so costs nothing.
+function zipStore(files: ZipFile[]): Uint8Array<ArrayBuffer> {
   const enc = new TextEncoder();
   const parts: Uint8Array[] = [];
   const centrals: Uint8Array[] = [];

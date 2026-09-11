@@ -240,7 +240,12 @@ export async function analyzeBurn(bytes: Uint8Array): Promise<BurnAnalysis | nul
     MsiPackage: 'MSI', ExePackage: 'EXE', MspPackage: 'MSP', MsuPackage: 'MSU',
   };
   const chain: BurnPackage[] = [];
-  const chainEl = root.getElementsByTagName('Chain')[0] || Array.from(uxEl).find((e) => e.localName === 'Chain');
+  // The fallback used to read Array.from(uxEl), and uxEl does not exist anywhere in this file.
+  // Any Burn manifest whose Chain is not found by the direct tag lookup - a namespaced one -
+  // hit a ReferenceError instead of the namespace-agnostic search that was clearly intended,
+  // taking the whole X-ray down with it. Search the descendants by localName instead.
+  const chainEl = root.getElementsByTagName('Chain')[0]
+    || Array.from(root.getElementsByTagName('*')).find((e) => e.localName === 'Chain');
   if (chainEl) {
     for (const pkgEl of Array.from(chainEl.children)) {
       const kind = kindMap[pkgEl.localName];
