@@ -97,6 +97,78 @@ export interface DetectionResult {
   customProperties?: string[];
   /** Deep MSI analysis (property matrix + uninstall-replay), present only for MSI packages. */
   msi?: MsiAnalysis;
+  /** 32-bit / 64-bit, from the file itself where the format decides it (see describeArchitecture). */
+  arch?: ArchInfo;
+}
+
+export interface ArchInfo {
+  /** What the package puts on the machine, as far as the file can tell. */
+  value: 'x64' | 'x86' | 'arm64' | 'unknown';
+  /**
+   * 'certain' = the file format decides it (an x64 MSI or a 64-bit setup program cannot run on 32-bit
+   * Windows). 'likely' = a strong hint only (the file or product name says x64). 'unknown' = the file
+   * doesn't say: most setup engines are 32-bit programs whatever they install.
+   */
+  certainty: 'certain' | 'likely' | 'unknown';
+  /** One line for the UI. */
+  text: string;
+}
+
+/** The PE COFF Machine field: 0x14c x86, 0x8664 x64, 0xaa64 ARM64. Null when not a readable PE. */
+function peMachine(bytes: Uint8Array): number | null {
+  try {
+    if (bytes.length < 0x40 || bytes[0] !== 0x4d || bytes[1] !== 0x5a) return null; // MZ
+    const dv = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
+    const pe = dv.getUint32(0x3c, true);
+    if (pe <= 0 || pe + 6 > bytes.length || dv.getUint32(pe, true) !== 0x00004550) return null; // "PE\0\0"
+    return dv.getUint16(pe + 4, true);
+  } catch { return null; }
+}
+
+/** What a name says, if anything. 64 is checked first: "x86_64" contains "x86". */
+function archFromName(...names: (string | undefined)[]): 'x64' | 'x86' | 'arm64' | null {
+  const s = names.filter(Boolean).join(' ');
+  if (/arm64|aarch64/i.test(s)) return 'arm64';
+  if (/x64|x86[-_]64|amd64|win64|64[-_ ]?bit/i.test(s)) return 'x64';
+  if (/x86|win32|i[3-6]86|32[-_ ]?bit/i.test(s)) return 'x86';
+  return null;
+}
+
+const ARCH_WORD: Record<'x64' | 'x86' | 'arm64', string> = { x64: '64-bit (x64)', x86: '32-bit (x86)', arm64: 'ARM64' };
+
+/**
+ * 32-bit or 64-bit, said as precisely as the file allows (Brian, 2026-09-29: a 32-bit Zoom MSI went out
+ * as "latest" and nothing on the page said so). Rules:
+ *  - MSI: the Summary Information platform decides it. x64/Arm64 = certain. Intel with files of its own
+ *    = certain 32-bit. Intel with NO files is a wrapper around a setup program (Microsoft's Edge
+ *    enterprise MSIs are stamped Intel even in the X64 download), so only a name hint can say more.
+ *  - EXE: a 64-bit setup program only runs on 64-bit Windows, so x64/ARM64 = certain. A 32-bit one says
+ *    nothing: Inno, NSIS, Burn and InstallShield stubs are 32-bit even when they install a 64-bit app.
+ */
+export function describeArchitecture(r: DetectionResult, bytes: Uint8Array): ArchInfo {
+  const hint = archFromName(r.fileName, r.product);
+  const fromHint = (lead: string): ArchInfo => hint
+    ? { value: hint, certainty: 'likely', text: `${ARCH_WORD[hint]}, likely: ${lead}, and the name says ${hint}.` }
+    : { value: 'unknown', certainty: 'unknown', text: `Unknown: ${lead}. Install it once and see whether it lands in Program Files or Program Files (x86).` };
+
+  if (r.engine === 'msi' && r.msi) {
+    const p = (r.msi.platform ?? '').toLowerCase();
+    if (p === 'x64' || p === 'intel64' || p === 'amd64') return { value: 'x64', certainty: 'certain', text: '64-bit (x64) MSI package. It will not install on 32-bit Windows.' };
+    if (p === 'arm64') return { value: 'arm64', certainty: 'certain', text: 'ARM64 MSI package.' };
+    if (p === 'intel' || p === '') {
+      if ((r.msi.fileCount ?? 0) > 0) return { value: 'x86', certainty: 'certain', text: '32-bit (x86) MSI package: it installs into Program Files (x86).' };
+      return fromHint('a 32-bit MSI that installs no files itself; it wraps a setup program, which may install a 64-bit app');
+    }
+    return fromHint(`the MSI platform is "${r.msi.platform ?? 'unreadable'}"`);
+  }
+  const m = peMachine(bytes);
+  if (m === 0x8664) return { value: 'x64', certainty: 'certain', text: '64-bit (x64) setup program. It only runs on 64-bit Windows.' };
+  if (m === 0xaa64) return { value: 'arm64', certainty: 'certain', text: 'ARM64 setup program.' };
+  const stub = ['inno', 'nsis', 'wix-burn', 'installshield', 'advanced-installer'].includes(r.engine);
+  if (m === 0x14c) return fromHint(stub
+    ? `the setup program is 32-bit, and ${r.label} setup programs are 32-bit even when the app they install is 64-bit`
+    : 'the setup program is 32-bit, which says nothing certain about the app it installs');
+  return fromHint("the file doesn't record an architecture");
 }
 
 // ── credential-shaped parameter names ────────────────────────────────────────
@@ -555,6 +627,7 @@ function harvestCapsVerbTable(wide: string): string[] {
  */
 export function detectInstaller(buf: ArrayBuffer, fileName?: string, totalSize?: number): DetectionResult {
   const r = detectCore(buf, fileName);
+  r.arch = describeArchitecture(r, new Uint8Array(buf));
   // Large files are identified from a head slice (the page slices before reading, so a 300+ MB
   // bundle no longer freezes the tab on full-buffer scans). Say so honestly - and why it's safe.
   if (totalSize != null && totalSize > buf.byteLength) {

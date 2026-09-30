@@ -336,6 +336,37 @@ function readCompoundFile(buf: ArrayBuffer): Cfb | null {
 
 export interface MsiDb {
   table(name: string): Record<string, Cell>[] | null;
+  /** Summary Information "Template" (PID 7), e.g. "x64;1033", "Intel;1033", "Arm64;1033". */
+  template?: string;
+}
+
+/**
+ * Read PID 7 (Template) from the \005SummaryInformation property set. The platform before the ";" is
+ * what Windows Installer itself checks: an x64/Arm64 package refuses to run on 32-bit Windows. VT_LPSTR
+ * values are read as Latin-1, which is exact for the ASCII platform names this is for.
+ */
+function readTemplate(cf: Cfb): string | undefined {
+  try {
+    const s = cf.read('\u0005SummaryInformation');
+    if (!s || s.length < 48) return undefined;
+    const dv = new DataView(s.buffer, s.byteOffset, s.byteLength);
+    if (dv.getUint16(0, true) !== 0xfffe) return undefined;           // property-set byte order mark
+    const sec = dv.getUint32(44, true);                                // first section's offset
+    if (sec + 8 > s.length) return undefined;
+    const count = dv.getUint32(sec + 4, true);
+    for (let i = 0; i < Math.min(count, 64); i++) {
+      const at = sec + 8 + i * 8;
+      if (at + 8 > s.length) break;
+      if (dv.getUint32(at, true) !== 7) continue;                      // PIDSI_TEMPLATE
+      const v = sec + dv.getUint32(at + 4, true);
+      if (v + 8 > s.length || dv.getUint32(v, true) !== 0x1e) return undefined; // VT_LPSTR
+      const len = dv.getUint32(v + 4, true);
+      let out = '';
+      for (let k = 0; k < len && v + 8 + k < s.length; k++) { const c = s[v + 8 + k]; if (c === 0) break; out += String.fromCharCode(c); }
+      return out;
+    }
+  } catch { /* malformed summary stream - no platform */ }
+  return undefined;
 }
 
 /** Parse an MSI into a table-reader, or null if it isn't a readable MSI database. */
@@ -367,6 +398,7 @@ export function readMsi(buf: ArrayBuffer): MsiDb | null {
   }
 
   return {
+    template: readTemplate(cf),
     table(tname: string) {
       const bytes = cf!.read(tname);
       const schema = schemas.get(tname);
@@ -397,6 +429,12 @@ export interface MsiAnalysis {
   registryRecovery: boolean;
   /** Ready-to-edit uninstall command with the replay props as placeholders. */
   uninstallCommand: string;
+  /** Platform from the Summary Information Template ("x64", "Intel", "Arm64", ...), if readable. */
+  platform?: string;
+  /** Rows in the File table: 0 means the MSI lays down no files itself (a wrapper around a setup program). */
+  fileCount?: number;
+  /** Components flagged 64-bit (msidbComponentAttributes64bit, 0x100). */
+  components64?: number;
 }
 
 // A public property is settable from the command line: its name is all-uppercase.
@@ -542,5 +580,8 @@ export function analyzeMsi(buf: ArrayBuffer): MsiAnalysis | null {
     uninstallReplay: replayList,
     registryRecovery,
     uninstallCommand,
+    platform: db.template ? db.template.split(';')[0].trim() || 'Intel' : undefined,
+    fileCount: db.table('File')?.length ?? 0,
+    components64: (db.table('Component') ?? []).filter((c) => (((c.Attributes as number) ?? 0) & 0x100) !== 0).length,
   };
 }

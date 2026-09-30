@@ -47,7 +47,11 @@ const description =
           <div class="result-engine" id="r-engine">-</div>
           <div class="result-file" id="r-file"></div>
         </div>
-        <span class="badge" id="r-confidence">-</span>
+        <div class="badges">
+          <!-- 32-bit / 64-bit, read from the file itself -->
+          <span class="badge arch" id="r-arch" hidden>-</span>
+          <span class="badge" id="r-confidence">-</span>
+        </div>
       </header>
 
       <!-- Known silent string from the curated catalog (hard-coded, NOT read from the file) -->
@@ -280,6 +284,10 @@ const description =
   .badge.low, .badge.none {
     color: var(--ink-3); background: var(--surface-alt); border-color: var(--border-strong);
   }
+  .badges { display: flex; gap: 6px; flex-wrap: wrap; justify-content: flex-end; flex-shrink: 0; }
+  /* Architecture is a fact, not a grade: neutral ink when the file decides it, muted otherwise. */
+  .badge.arch { color: var(--ink); background: var(--surface); border-color: var(--ink-3); }
+  .badge.arch.likely, .badge.arch.unknown { color: var(--ink-3); background: var(--surface-alt); border-color: var(--border-strong); }
 
   .modifiers {
     font-family: 'JetBrains Mono', ui-monospace, monospace;
@@ -1305,6 +1313,15 @@ const description =
     badge.textContent = r.confidence === 'none' ? 'unknown' : r.confidence + ' confidence';
     badge.className = 'badge ' + r.confidence;
 
+    const archBadge = $('r-arch');
+    if (r.arch) {
+      const word = { x64: '64-bit', x86: '32-bit', arm64: 'ARM64', unknown: 'bitness unknown' }[r.arch.value];
+      archBadge.textContent = r.arch.certainty === 'likely' ? `${word}?` : word;
+      archBadge.title = r.arch.text;
+      archBadge.className = 'badge arch ' + r.arch.certainty;
+      archBadge.hidden = false;
+    } else archBadge.hidden = true;
+
     // Curated catalog match - a HARD-CODED known string, shown prominently and clearly labeled as
     // such (not read from the file). The fallback for the custom/compressed long tail.
     const cat = lookupCatalog({ product: r.product, fileName: r.fileName });
@@ -1517,6 +1534,7 @@ const description =
     const rows: Array<[string, string | undefined]> = [
       ['Product', r.product],
       ['Version', r.version],
+      ['Architecture', r.arch?.text],
       ['Publisher', r.company],
       ['Built with', r.engineVersion],
     ];
