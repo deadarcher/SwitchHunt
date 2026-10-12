@@ -32,6 +32,13 @@ export interface CatalogEntry {
    * Prose in `note` cannot be clicked; this can.
    */
   properties?: CatalogProperty[];
+  /**
+   * Lab evidence, copied from a recorded SwitchHunt harness run - never set by hand. The install
+   * command above was run AS SYSTEM (how every deployment tool runs it) on a Windows 11 VM against
+   * the named installer version, and the app appeared in Add/Remove Programs for a real user - exit
+   * 0 alone is never accepted. `uninstall: true` means the documented uninstall then removed it.
+   */
+  verified?: { on: string; version: string; uninstall?: boolean };
 }
 
 export interface CatalogProperty {
@@ -88,18 +95,24 @@ export const CATALOG: CatalogEntry[] = [
     name: 'Python',
     match: { product: /^python \d/i, file: /python-3\.\d/i },
     install: '{file} /quiet InstallAllUsers=1 PrependPath=1',
+    verified: { on: '2026-07-29', version: '3.12.10' },
     note: 'Custom bootstrapper; properties are bare NAME=value (no slash). Add Include_test=0 to skip the test suite.',
   },
   {
     name: 'Visual Studio Code',
-    match: { product: /visual studio code/i, file: /VSCode.*Setup/i },
+    // file regex was /VSCode.*Setup/ until 2026-10-12, which also matched VSCodeUserSetup - the per-user
+    // build that, run as SYSTEM, installs into SYSTEM's own profile (PHANTOM in the 2026-07-29 lab run).
+    match: { product: /visual studio code/i, file: /VSCodeSetup/i },
     install: '{file} /VERYSILENT /MERGETASKS=!runcode',
-    note: 'Inno Setup. /MERGETASKS=!runcode stops it launching after install; add addcontextmenufiles,addtopath for shell integration + PATH.',
+    uninstall: '"%ProgramFiles%\\Microsoft VS Code\\unins000.exe" /VERYSILENT',
+    verified: { on: '2026-10-12', version: '1.141.0', uninstall: true },
+    note: 'Use the SYSTEM installer (VSCodeSetup-x64-*.exe). The download page and winget default to the USER installer (VSCodeUserSetup-*), which run as SYSTEM installs into SYSTEM\'s own profile - exit 0, and no real user ever sees it. Inno Setup: /MERGETASKS=!runcode stops it launching after install; add addcontextmenufiles,addtopath for shell integration + PATH.',
   },
   {
     name: 'Git for Windows',
     match: { product: /^git\b/i, file: /Git-\d.*64-bit/i },
     install: '{file} /VERYSILENT /NORESTART',
+    verified: { on: '2026-07-29', version: '2.55.0.3' },
     note: 'Inno Setup. Use /LOADINF="config.inf" to preset components/options (record one with /SAVEINF).',
   },
   {
@@ -179,7 +192,10 @@ export const CATALOG: CatalogEntry[] = [
   },
   {
     name: 'ESET Endpoint Security',
-    match: { product: /eset/i, file: /ees_|eea_|eset/i },
+    // Word-bounded since 2026-10-12. Was /eset/ on both, which matched the "eSet" in "...eSetup.exe"
+    // (GoogleDriveSetup, TreeSizeFreeSetup, ChromeSetup, OneDriveSetup...) and "Reset" in product names,
+    // handing ESET's switches to unrelated installers.
+    match: { product: /\beset\b/i, file: /^(ees|eea)_|\beset[_ .-]/i },
     install: 'msiexec /i "{file}" /qn /norestart',
     note: 'Bare MSI installs the client but it won\'t be MANAGED - for unattended enrollment layer the ESET PROTECT config (a generated .mst / install_config.ini) via TRANSFORMS=. A reboot is usually required.',
   },
@@ -191,14 +207,15 @@ export const CATALOG: CatalogEntry[] = [
     install: 'msiexec /i "{file}" /qn /norestart',
     note: 'Use the Enterprise MSI, not the consumer stub exe, for fleet deploys.',
   },
-  { name: 'Mozilla Firefox', match: { product: /mozilla firefox/i, file: /Firefox.*Setup/i }, install: '{file} /S', uninstall: '"%ProgramFiles%\\Mozilla Firefox\\uninstall\\helper.exe" /S', detect: 'C:\\Program Files\\Mozilla Firefox\\firefox.exe', note: 'NSIS. Drop a policies.json / use the MSI for managed settings.' },
+  { name: 'Mozilla Firefox', match: { product: /mozilla firefox/i, file: /Firefox.*Setup/i }, install: '{file} /S', uninstall: '"%ProgramFiles%\\Mozilla Firefox\\uninstall\\helper.exe" /S', detect: 'C:\\Program Files\\Mozilla Firefox\\firefox.exe', verified: { on: '2026-07-29', version: '153.0.1', uninstall: true }, note: 'NSIS. Drop a policies.json / use the MSI for managed settings.' },
   { name: '7-Zip', match: { product: /^7-zip/i, file: /7z\d.*\.exe/i }, install: '{file} /S', uninstall: '"%ProgramFiles%\\7-Zip\\Uninstall.exe" /S', detect: 'C:\\Program Files\\7-Zip\\7zFM.exe' },
   { name: 'Notepad++', match: { product: /notepad\+\+/i, file: /npp\..*Installer/i }, install: '{file} /S /allusers', uninstall: '"%ProgramFiles%\\Notepad++\\uninstall.exe" /S', detect: 'C:\\Program Files\\Notepad++\\notepad++.exe', note: 'NSIS. /allusers installs machine-wide (HKLM, Program Files); drop it for a per-user install.' },
   { name: 'VLC media player', match: { product: /vlc media player/i, file: /vlc-.*win/i }, install: '{file} /S', uninstall: '"%ProgramFiles%\\VideoLAN\\VLC\\uninstall.exe" /S', detect: 'C:\\Program Files\\VideoLAN\\VLC\\vlc.exe' },
-  { name: 'WinRAR', match: { product: /^winrar/i, file: /winrar|wrar\d/i }, install: '{file} /S', uninstall: '"%ProgramFiles%\\WinRAR\\uninstall.exe" /S', detect: 'C:\\Program Files\\WinRAR\\WinRAR.exe' },
-  { name: 'OBS Studio', match: { product: /obs studio/i, file: /OBS-Studio|obs-studio/i }, install: '{file} /S', uninstall: '"%ProgramFiles%\\obs-studio\\uninstall.exe" /S', detect: 'C:\\Program Files\\obs-studio\\bin\\64bit\\obs64.exe', note: 'NSIS.' },
-  { name: 'GIMP', match: { product: /^gimp/i, file: /gimp.*setup/i }, install: '{file} /VERYSILENT /SUPPRESSMSGBOXES /NORESTART /ALLUSERS', note: 'Inno Setup, and /VERYSILENT alone is NOT enough. Like Greenshot, GIMP shows the Inno "Select Setup Install Mode" dialog, presented BEFORE the silent machinery engages - no /SILENT flag suppresses it. Without /ALLUSERS it hangs forever under a deployment tool (session 0 has nobody to click it). Verified installing machine-wide with these switches. It is also SLOW - roughly 9 minutes for the ~300 MB payload - so raise your deployment timeout above the usual 5-minute default or the job is killed mid-install.' },
-  { name: 'Node.js', match: { product: /node\.js/i, file: /node-v.*\.msi/i }, install: 'msiexec /i "{file}" /qn /norestart' },
+  { name: 'WinRAR', match: { product: /^winrar/i, file: /winrar|wrar\d/i }, install: '{file} /S', uninstall: '"%ProgramFiles%\\WinRAR\\uninstall.exe" /S', detect: 'C:\\Program Files\\WinRAR\\WinRAR.exe', verified: { on: '2026-07-29', version: '7.23', uninstall: true } },
+  { name: 'OBS Studio', match: { product: /obs studio/i, file: /OBS-Studio|obs-studio/i }, install: '{file} /S', uninstall: '"%ProgramFiles%\\obs-studio\\uninstall.exe" /S', detect: 'C:\\Program Files\\obs-studio\\bin\\64bit\\obs64.exe', verified: { on: '2026-07-29', version: '32.1.2', uninstall: true }, note: 'NSIS.' },
+  { name: 'GIMP', match: { product: /^gimp/i, file: /gimp.*setup/i }, install: '{file} /VERYSILENT /SUPPRESSMSGBOXES /NORESTART /ALLUSERS', verified: { on: '2026-07-29', version: '3.2.4' }, note: 'Inno Setup, and /VERYSILENT alone is NOT enough. Like Greenshot, GIMP shows the Inno "Select Setup Install Mode" dialog, presented BEFORE the silent machinery engages - no /SILENT flag suppresses it. Without /ALLUSERS it hangs forever under a deployment tool (session 0 has nobody to click it). Verified installing machine-wide with these switches. It is also SLOW - roughly 9 minutes for the ~300 MB payload - so raise your deployment timeout above the usual 5-minute default or the job is killed mid-install.' },
+  { name: 'Node.js', match: { product: /node\.js/i, file: /node-v.*\.msi/i }, install: 'msiexec /i "{file}" /qn /norestart', verified: { on: '2026-07-29', version: '24.18.0' } },
+
   // ── Added 2026-07-26. Every command below was confirmed against TWO independent sources
   // (vendor/upstream documentation + the offlineinstallersetup silent-install cheatsheet) before
   // being published. Deliberately NOT added despite being requested: Slack — its official docs now
@@ -207,7 +224,7 @@ export const CATALOG: CatalogEntry[] = [
   // value is "this one is correct" would be worse than omitting the app.
   { name: 'FileZilla', match: { product: /filezilla/i, file: /filezilla.*setup/i }, install: '{file} /S', uninstall: '"%ProgramFiles%\\FileZilla FTP Client\\uninstall.exe" /S', note: 'NSIS. /S suppresses the wizard; the bundled-offer screens are skipped by the official silent setup.' },
   { name: 'PuTTY', match: { product: /^putty/i, file: /putty.*installer\.msi/i }, install: 'msiexec /i "{file}" /quiet /norestart', uninstall: 'msiexec /x "{file}" /quiet /norestart', note: 'MSI (the .exe on the download page is the program itself, not an installer - grab the 64-bit MSI).' },
-  { name: 'Audacity', match: { product: /audacity/i, file: /audacity-win/i }, install: '{file} /VERYSILENT /NORESTART', note: 'Inno Setup.' },
+  { name: 'Audacity', match: { product: /audacity/i, file: /audacity-win/i }, install: '{file} /VERYSILENT /NORESTART', verified: { on: '2026-07-29', version: '3.7.8' }, note: 'Inno Setup.' },
   { name: 'Postman', match: { product: /postman/i, file: /postman.*\.msi/i }, install: 'msiexec /i "{file}" /qn', note: 'Enterprise MSI only (the consumer build is a per-user .exe). INSTALLDIR sets a custom path.' },
 
   // Batch 2, 2026-07-26. Same two-source rule.
@@ -215,13 +232,92 @@ export const CATALOG: CatalogEntry[] = [
   // editor is licensed, and they ship separate installers. Command from Foxit's own "PDF Reader
   // Deployment and Configuration" PDF, corroborated by ManageEngine's package definition.
   { name: 'Foxit PDF Reader', match: { product: /foxit (pdf )?reader/i, file: /foxit.*reader.*\.msi/i }, install: 'msiexec /i "{file}" /quiet', uninstall: 'msiexec /x "{file}" /quiet CLEAN="1"', note: 'Vendor docs use /quiet. CLEAN="1" on uninstall also removes registry + user data. ADDLOCAL="FX_PDFVIEWER" installs the viewer only.' },
-  { name: 'Sumatra PDF', match: { product: /sumatra/i, file: /sumatra/i }, install: '{file} -install -s', note: 'Custom installer - NOT an MSI and NOT NSIS, so /S and /qn both do nothing. -install -s is the documented pair.' },
-  { name: 'Greenshot', match: { product: /greenshot/i, file: /greenshot.*installer/i }, install: '{file} /VERYSILENT /SUPPRESSMSGBOXES /NORESTART /ALLUSERS', detect: 'C:\\Program Files\\Greenshot\\Greenshot.exe', note: 'Inno Setup, and /VERYSILENT alone is NOT enough. The installer shows a "Select Setup Install Mode" dialog that no /SILENT flag suppresses - without /ALLUSERS it hangs forever under a deployment tool (session 0 has nobody to click it). Also: the silent install OPENS THE GREENSHOT WEBSITE in a browser when it finishes and there is no switch to stop it, confirmed by the maintainers. Add /MERGETASKS="!startup" to skip the run-at-startup entry. No uninstall string is published: the vendor-registered unins000.exe /SILENT hung indefinitely as SYSTEM in testing, and a hanging uninstall is worse than none.' },
-  { name: 'LibreOffice', match: { product: /libreoffice/i, file: /libreoffice.*\.msi/i }, install: 'msiexec /i "{file}" /quiet /norestart', note: 'Standard MSI. Add REGISTER_ALL_MSO_TYPES=1 to take over Office file associations, or REGISTER_NO_MSO_TYPES=1 to leave them alone.',
+  { name: 'Sumatra PDF', match: { product: /sumatra/i, file: /sumatra/i }, install: '{file} -install -all-users -d "C:\\Program Files\\SumatraPDF" -s', uninstall: '{file} -uninstall -s', verified: { on: '2026-10-12', version: '3.6.1', uninstall: true }, note: 'Custom installer - NOT an MSI and NOT NSIS, so /S and /qn both do nothing. The documented "-install -s" is a PER-USER install (into %LocalAppData%) - under a deployment tool that means the SYSTEM profile, and no real user ever sees it. Even -all-users alone, run as SYSTEM, still put the program in SYSTEM\'s profile in our lab (3.6.1); pinning the folder with -d is what made it machine-wide. Add -no-desktop-shortcut on 3.7+.' },
+  { name: 'Greenshot', match: { product: /greenshot/i, file: /greenshot.*installer/i }, install: '{file} /VERYSILENT /SUPPRESSMSGBOXES /NORESTART /ALLUSERS', detect: 'C:\\Program Files\\Greenshot\\Greenshot.exe', verified: { on: '2026-07-29', version: '1.3.315' }, note: 'Inno Setup, and /VERYSILENT alone is NOT enough. The installer shows a "Select Setup Install Mode" dialog that no /SILENT flag suppresses - without /ALLUSERS it hangs forever under a deployment tool (session 0 has nobody to click it). Also: the silent install OPENS THE GREENSHOT WEBSITE in a browser when it finishes and there is no switch to stop it, confirmed by the maintainers. Add /MERGETASKS="!startup" to skip the run-at-startup entry. No uninstall string is published: the vendor-registered unins000.exe /SILENT hung indefinitely as SYSTEM in testing, and a hanging uninstall is worse than none.' },
+  { name: 'LibreOffice', match: { product: /libreoffice/i, file: /libreoffice.*\.msi/i }, install: 'msiexec /i "{file}" /quiet /norestart', verified: { on: '2026-07-29', version: '26.2.4.2' }, note: 'Standard MSI. Add REGISTER_ALL_MSO_TYPES=1 to take over Office file associations, or REGISTER_NO_MSO_TYPES=1 to leave them alone.',
     properties: [
       { name: 'REGISTER_ALL_MSO_TYPES', value: '1', why: 'Take over .docx/.xlsx/.pptx associations from Office.' },
       { name: 'REGISTER_NO_MSO_TYPES',  value: '1', why: 'Leave Office file associations alone.' },
     ] },
+  // Batch 3, 2026-10-12. Same two-source rule, PLUS every entry below was LAB-TESTED before publishing:
+  // the exact install string run AS SYSTEM on a Windows 11 VM (HYD-CLIENT1) via the SwitchHunt harness,
+  // judged by Add/Remove Programs (never exit code), and by the install landing outside any service
+  // profile; then the exact uninstall string, judged the same way. Detect paths are only included where
+  // the file was confirmed present on the VM. Installer variant pinned per entry (several vendors ship a
+  // per-user build that winget prefers - see each note). Raw results: scratch harness run, not in repo.
+  { name: 'PowerShell 7', match: { product: /^powershell 7/i, file: /PowerShell-7.*-win-x64\.msi/i }, install: 'msiexec /i "{file}" /qn ADD_PATH=1 REGISTER_MANIFEST=1 USE_MU=1 ENABLE_MU=1', uninstall: 'msiexec /x "{file}" /qn', detect: 'C:\\Program Files\\PowerShell\\7\\pwsh.exe', verified: { on: '2026-10-12', version: '7.6.6', uninstall: true }, note: 'Use the MSI, not winget\'s default: since 7.6 winget installs the per-user MSIX, which has no remoting endpoint and no $PSHOME config. Microsoft has said there is no MSI from 7.7 onward, so pin to the 7.6 LTS MSI for machine-wide deploys. Every 7.x installs into ...\\PowerShell\\7, so a newer MSI replaces the old one in place.',
+    properties: [
+      { name: 'ADD_PATH', value: '1', why: 'Put pwsh on the system PATH.' },
+      { name: 'ENABLE_PSREMOTING', value: '1', why: 'Enable PowerShell remoting (WinRM endpoint) during install.' },
+      { name: 'ADD_EXPLORER_CONTEXT_MENU_OPENPOWERSHELL', value: '1', why: 'Add "Open PowerShell 7 here" to folder right-click.' },
+      { name: 'DISABLE_TELEMETRY', value: '1', why: 'Set POWERSHELL_TELEMETRY_OPTOUT machine-wide.' },
+      { name: 'USE_MU', value: '1', why: 'Let Microsoft Update / WSUS deliver PowerShell updates.' },
+    ] },
+  { name: 'Eclipse Temurin JDK', match: { product: /eclipse temurin|adoptium/i, file: /OpenJDK\d+U-jdk_x64_windows_hotspot.*\.msi/i }, install: 'msiexec /i "{file}" /qn ADDLOCAL=FeatureMain,FeatureEnvironment,FeatureJarFileRunWith,FeatureJavaHome', uninstall: 'msiexec /x "{file}" /qn', verified: { on: '2026-10-12', version: '21.0.12.1+1', uninstall: true }, note: 'JAVA_HOME is NOT set by default - FeatureJavaHome has to be in ADDLOCAL. Listing ADDLOCAL replaces the defaults, so keep FeatureMain in it. Skip ADDLOCAL=ALL (what winget uses): it adds FeatureOracleJavaSoft, which rewrites the HKLM JavaSoft keys and can hijack an existing Oracle Java. The install folder carries the build number (jdk-21.0.12.101-hotspot for 21.0.12.1+1), so detect on a fixed INSTALLDIR rather than the default path.',
+    properties: [
+      { name: 'INSTALLDIR', value: 'C:\\Program Files\\Temurin\\jdk21\\', why: 'Fixed install path, so detection survives patch updates.' },
+      { name: 'ADDLOCAL', value: 'FeatureMain,FeatureEnvironment,FeatureJarFileRunWith,FeatureJavaHome', why: 'JDK + PATH + .jar association + JAVA_HOME.' },
+    ] },
+  { name: 'KeePassXC', match: { product: /keepassxc/i, file: /KeePassXC-.*-Win64\.msi/i }, install: 'msiexec /i "{file}" /qn LAUNCHAPPONEXIT=0 AUTOSTARTPROGRAM=0', uninstall: 'msiexec /x "{file}" /qn', detect: 'C:\\Program Files\\KeePassXC\\KeePassXC.exe', verified: { on: '2026-10-12', version: '2.7.12', uninstall: true }, note: 'Two properties default ON: LAUNCHAPPONEXIT starts the app when the install finishes, and AUTOSTARTPROGRAM adds a run-at-logon entry for every user. Set both to 0 for a quiet fleet deploy. Needs the VC++ 2015-2022 x64 runtime.',
+    properties: [
+      { name: 'LAUNCHAPPONEXIT', value: '0', why: 'Don\'t launch KeePassXC when the install finishes (default on).' },
+      { name: 'AUTOSTARTPROGRAM', value: '0', why: 'Don\'t start it at every user logon (default on).' },
+      { name: 'INSTALLDESKTOPSHORTCUT', value: '1', why: 'Add a desktop shortcut (default off).' },
+    ] },
+  { name: 'Microsoft PowerToys (machine-wide)', match: { product: /powertoys/i, file: /PowerToysSetup-.*x64\.exe/i }, install: '{file} /quiet /norestart', uninstall: '{file} /uninstall /quiet /norestart', detect: 'C:\\Program Files\\PowerToys\\PowerToys.exe', verified: { on: '2026-10-12', version: '0.101.2362.0', uninstall: true }, note: 'Two installers: PowerToysSetup-*.exe is machine-wide, PowerToysUserSetup-*.exe is per-user - and winget picks the per-user one unless you pass --scope machine. WiX Burn bundle, so the uninstall needs the SAME version\'s bundle (Burn also caches it under C:\\ProgramData\\Package Cache). Don\'t mix the per-user and machine installs on one PC. It installs the WebView2 runtime if missing and then self-updates.' },
+  { name: 'Google Drive for desktop', match: { product: /google drive/i, file: /GoogleDriveSetup/i }, install: '{file} --silent --skip_launch_new --gsuite_shortcuts=false', verified: { on: '2026-10-12', version: '132.0.0.0' }, note: 'Machine-wide (Program Files\\Google\\Drive File Stream) and installs a virtual-drive filesystem driver. Without --skip_launch_new it launches straight after install; --gsuite_shortcuts=false skips the Docs/Sheets/Slides Start-menu shortcuts. No stable uninstall string: the uninstaller sits in a versioned folder (Drive File Stream\\<version>\\uninstall.exe --silent --force_stop), so read it from the ARP entry at uninstall time. Grab the evergreen GoogleDriveSetup.exe from dl.google.com rather than a versioned URL.' },
+  { name: 'WireGuard', match: { product: /^wireguard/i, file: /wireguard-amd64.*\.msi/i }, install: 'msiexec /i "{file}" /qn DO_NOT_LAUNCH=1', uninstall: 'msiexec /x "{file}" /qn', detect: 'C:\\Program Files\\WireGuard\\wireguard.exe', verified: { on: '2026-10-12', version: '1.1.1', uninstall: true }, note: 'The client UI launches after install unless DO_NOT_LAUNCH=1. Installs the WireGuardNT network driver. Tunnels are added afterwards, e.g. wireguard.exe /installtunnelservice C:\\path\\wg0.conf. Only Administrators can drive the UI unless you enable the LimitedOperatorUI policy for Network Configuration Operators.',
+    properties: [
+      { name: 'DO_NOT_LAUNCH', value: '1', why: 'Don\'t open the WireGuard UI when the install finishes.' },
+    ] },
+  { name: 'Tailscale', match: { product: /^tailscale/i, file: /tailscale-setup-.*-amd64\.msi/i }, install: 'msiexec /i "{file}" /qn TS_NOLAUNCH=true', uninstall: 'msiexec /x "{file}" /qn', detect: 'C:\\Program Files\\Tailscale\\tailscaled.exe', verified: { on: '2026-10-12', version: '1.104.1', uninstall: true }, note: 'The GUI launches after install unless TS_NOLAUNCH has any value. There is NO auth-key MSI property - despite what some guides say, the device still has to join your tailnet afterwards, e.g. tailscale up --auth-key=<key>. Set TS_UNATTENDEDMODE=always so the tunnel stays up with nobody logged on.',
+    properties: [
+      { name: 'TS_UNATTENDEDMODE', value: 'always', why: 'Keep the tunnel running when no user is logged on.' },
+      { name: 'TS_INSTALLUPDATES', value: 'always', why: 'Let Tailscale install its own updates.' },
+      { name: 'TS_LOGINURL', value: '', why: 'Your own coordination server (e.g. Headscale) instead of tailscale.com.' },
+      { name: 'TS_ALLOWINCOMINGCONNECTIONS', value: 'never', why: 'Block incoming connections to this device.' },
+    ] },
+  { name: 'KeePass Password Safe', match: { product: /^keepass( password safe)?\b(?!xc)/i, file: /KeePass-2\..*\.msi/i }, install: 'msiexec /i "{file}" /qn', uninstall: 'msiexec /x "{file}" /qn', verified: { on: '2026-10-12', version: '2.61.1', uninstall: true }, note: 'Use the MSI for fleet deploys (the Setup.exe alternative is Inno Setup: {file} /VERYSILENT /ALLUSERS). Options go through one property, KPS_OPTIONS - a comma list where a leading ! turns an option off. Downloads come via SourceForge, which serves an HTML page instead of the file to some scripted downloaders - check you actually got a ~3 MB MSI before you package it.',
+    properties: [
+      { name: 'KPS_OPTIONS', value: '!DesktopIcon,!PreLoad', why: 'No desktop icon, no preload at logon (options: StartMenuIcons, DesktopIcon, NGen, PreLoad).' },
+    ] },
+  { name: 'WinSCP', match: { product: /^winscp/i, file: /WinSCP-.*-Setup\.exe/i }, install: '{file} /VERYSILENT /ALLUSERS /NORESTART', uninstall: '"%ProgramFiles(x86)%\\WinSCP\\unins000.exe" /VERYSILENT /NORESTART', verified: { on: '2026-10-12', version: '6.5.7', uninstall: true }, note: 'Inno Setup. /ALLUSERS matters: winget\'s default is a per-user install into %LocalAppData%. Machine-wide it lands in Program Files (x86)\\WinSCP even on 64-bit Windows - the uninstall path above is the one we saw. The silent uninstall keeps saved sessions and settings. A WinSCP-*.msi also exists for msiexec /qn shops.' },
+  { name: 'Cisco Webex', match: { product: /^webex/i, file: /^Webex\.msi$/i }, install: 'msiexec /i "{file}" /qn ACCEPT_EULA=TRUE ALLUSERS=1', uninstall: 'msiexec /x "{file}" /qn', verified: { on: '2026-10-12', version: '46.9 (Webex.msi)', uninstall: true }, note: 'ACCEPT_EULA=TRUE spares every user the licence prompt, and ALLUSERS=1 is what makes it machine-wide (into Program Files\\Cisco Spark) - without it the MSI installs per-user. Webex starts with Windows by default; AUTOSTART_WITH_WINDOWS=false turns that off (and locks the user\'s toggle). The file is always named Webex.msi, so keep track of the version separately.',
+    properties: [
+      { name: 'ACCEPT_EULA', value: 'TRUE', why: 'Accept the EULA on behalf of users (no prompt at first launch).' },
+      { name: 'ALLUSERS', value: '1', why: 'Machine-wide install; without it the MSI goes per-user.' },
+      { name: 'AUTOSTART_WITH_WINDOWS', value: 'false', why: 'Don\'t start Webex at logon (default true).' },
+      { name: 'ENABLEOUTLOOKINTEGRATION', value: '0', why: 'Turn off Outlook presence integration.' },
+    ] },
+  { name: 'Microsoft Power BI Desktop', match: { product: /power ?bi desktop/i, file: /PBIDesktopSetup.*x64\.exe/i }, install: '{file} -quiet -norestart ACCEPT_EULA=1', uninstall: '{file} -uninstall -quiet -norestart', detect: 'C:\\Program Files\\Microsoft Power BI Desktop\\bin\\PBIDesktop.exe', verified: { on: '2026-10-12', version: '2026-09', uninstall: true }, note: 'ACCEPT_EULA=1 is mandatory - without it an unattended install fails. WiX Burn bundle: it registers two ARP entries (the bundle and its MSI), and the uninstall needs the same month\'s bundle (Burn also caches it under C:\\ProgramData\\Package Cache). Slow: ~11 minutes in our lab, so raise a 5-minute deployment timeout. Can\'t coexist with the Microsoft Store version. New release every month.',
+    properties: [
+      { name: 'ACCEPT_EULA', value: '1', why: 'Accept the licence - required for a silent install.' },
+      { name: 'DISABLE_UPDATE_NOTIFICATION', value: '1', why: 'Stop the monthly "update available" nag.' },
+      { name: 'ENABLECXP', value: '0', why: 'Opt out of the customer experience (usage data) program.' },
+      { name: 'INSTALLDESKTOPSHORTCUT', value: '0', why: 'No desktop shortcut.' },
+    ] },
+  { name: 'Miniconda', match: { product: /^miniconda/i, file: /Miniconda3-.*-Windows-x86_64\.exe/i }, install: '{file} /InstallationType=AllUsers /RegisterPython=1 /S /D=C:\\ProgramData\\miniconda3', uninstall: '"C:\\ProgramData\\miniconda3\\Uninstall-Miniconda3.exe" /S', detect: 'C:\\ProgramData\\miniconda3\\python.exe', verified: { on: '2026-10-12', version: 'py314_26.7.1-1', uninstall: true }, note: 'NSIS with case-sensitive switches. /D= must be LAST and UNQUOTED (even with spaces) - put it anywhere else and it is ignored. The default is /InstallationType=JustMe, the per-user trap. /AddToPath is ignored for AllUsers installs (disabled for security since 4.12), so add the PATH entry yourself if you need it. Licensing: Anaconda\'s default channels need a paid licence for organisations of 200+ people - point conda at conda-forge if that applies.' },
+  { name: 'Mozilla Thunderbird', match: { product: /thunderbird/i, file: /Thunderbird.*Setup/i }, install: '"{file}" /S /PreventRebootRequired=true', uninstall: '"%ProgramFiles%\\Mozilla Thunderbird\\uninstall\\helper.exe" /S', detect: 'C:\\Program Files\\Mozilla Thunderbird\\thunderbird.exe', verified: { on: '2026-10-12', version: '157.0.1', uninstall: true }, note: 'NSIS, same installer framework as Firefox. Quote the file - the vendor names it "Thunderbird Setup <version>.exe", with spaces. It also installs the Mozilla Maintenance Service (pass /MaintenanceService=false to skip it); the uninstall above removed both in our lab. Other switches: /DesktopShortcut=false, /TaskbarShortcut=false, /InstallDirectoryPath=<path>.' },
+  { name: 'WinMerge', match: { product: /^winmerge/i, file: /WinMerge-.*-x64-Setup\.exe/i }, install: '{file} /VERYSILENT /SUPPRESSMSGBOXES /NORESTART /SP-', uninstall: '"%ProgramFiles%\\WinMerge\\unins000.exe" /VERYSILENT /SUPPRESSMSGBOXES /NORESTART', detect: 'C:\\Program Files\\WinMerge\\WinMergeU.exe', verified: { on: '2026-10-12', version: '2.16.58.2', uninstall: true }, note: 'Two installer files: WinMerge-<ver>-x64-Setup.exe is machine-wide, WinMerge-<ver>-x64-PerUser-Setup.exe installs into %LocalAppData% - and winget defaults to the per-user one. Ship the plain x64-Setup.exe. Inno Setup; add /MERGETASKS="!desktopicon" to skip the desktop icon.' },
+  { name: 'ShareX', match: { product: /^sharex/i, file: /ShareX-.*-setup/i }, install: '{file} /VERYSILENT /NORUN /NORESTART', uninstall: '"%ProgramFiles%\\ShareX\\unins000.exe" /VERYSILENT /NORESTART', detect: 'C:\\Program Files\\ShareX\\ShareX.exe', verified: { on: '2026-10-12', version: '21.0.0', uninstall: true }, note: 'Inno Setup. /NORUN is ShareX\'s own switch - without it ShareX launches when setup finishes. Run elevated (or as SYSTEM) it installs to Program Files; unelevated it goes per-user. Default tasks add Explorer context-menu and Send To entries and can take over the Print Screen key.' },
+  { name: 'IrfanView', match: { product: /irfanview/i, file: /iview\d+_x64_setup/i }, install: '{file} /silent /allusers=1 /desktop=0 /group=1 /assoc=1', uninstall: '"%ProgramFiles%\\IrfanView\\iv_uninstall.exe" /silent', detect: 'C:\\Program Files\\IrfanView\\i_view64.exe', verified: { on: '2026-10-12', version: '4.76 (64-bit)', uninstall: true }, note: 'IrfanView\'s own installer - not Inno, not NSIS, so /S and /VERYSILENT do nothing. /allusers=1 only decides whether the shortcuts go to all users; leave it off under a deployment tool and they land in the SYSTEM profile. /assoc applies to the account that runs setup, so from SYSTEM it won\'t set file associations for your users - push those with a default-apps XML instead. Plugins are a separate installer.' },
+  { name: 'Everything (voidtools)', match: { product: /^everything\b/i, file: /Everything-.*\.x64\.msi/i }, install: 'msiexec /i "{file}" /qn', uninstall: 'msiexec /x "{file}" /qn', detect: 'C:\\Program Files\\Everything\\Everything.exe', verified: { on: '2026-10-12', version: '1.4.1.1032', uninstall: true }, note: 'By default the MSI installs and starts the Everything service (so standard users get instant NTFS search) and sets Everything to run at startup for all users. START_ON_STARTUP=0 stops the auto-run. The NSIS setup.exe takes /S instead.',
+    properties: [
+      { name: 'START_ON_STARTUP', value: '0', why: 'Don\'t auto-run Everything at every logon (default on).' },
+      { name: 'EVERYTHING_SERVICE', value: '1', why: 'Install the indexing service so standard users can search (default on).' },
+    ] },
+  { name: 'Bitwarden', match: { product: /^bitwarden/i, file: /Bitwarden-Installer/i }, install: '{file} /allusers /S', uninstall: '"%ProgramFiles%\\Bitwarden\\Uninstall Bitwarden.exe" /allusers /S', detect: 'C:\\Program Files\\Bitwarden\\Bitwarden.exe', verified: { on: '2026-10-12', version: '2026.9.1', uninstall: true }, note: 'electron-builder NSIS. /allusers is REQUIRED for a machine-wide install - without it the app goes per-user, i.e. into the SYSTEM profile under a deployment tool. It is a WEB installer: the app itself downloads from GitHub during setup, so the endpoint needs to reach github.com. The uninstaller returns before it finishes (about 10 s in our lab). There is no MSI.' },
+  { name: 'draw.io', match: { product: /^draw\.io/i, file: /draw\.io-.*-windows-installer\.exe/i }, install: '{file} /allusers /S', uninstall: '"%ProgramFiles%\\draw.io\\Uninstall draw.io.exe" /allusers /S', detect: 'C:\\Program Files\\draw.io\\draw.io.exe', verified: { on: '2026-10-12', version: '32.4.1', uninstall: true }, note: 'Use draw.io-<ver>-windows-installer.exe (NSIS, machine-wide). The draw.io .msi - winget\'s default - is built as a per-user package. The uninstaller returns before it finishes (about 9 s in our lab).' },
+  { name: 'AWS CLI v2', match: { product: /aws command line interface/i, file: /AWSCLIV2(?!-User).*\.msi/i }, install: 'msiexec /i "{file}" /qn', uninstall: 'msiexec /x "{file}" /qn', detect: 'C:\\Program Files\\Amazon\\AWSCLIV2\\aws.exe', verified: { on: '2026-10-12', version: '2.37.12', uninstall: true }, note: 'Use AWSCLIV2.msi. AWSCLIV2-User.msi is the per-user build, and AWS\'s newer install.ps1 is per-user too unless you pass -System. PATH changes only reach new shells.' },
+  { name: 'Azure CLI', match: { product: /azure cli/i, file: /azure-cli-.*-x64\.msi/i }, install: 'msiexec /i "{file}" /qn', uninstall: 'msiexec /x "{file}" /qn', detect: 'C:\\Program Files\\Microsoft SDKs\\Azure\\CLI2\\wbin\\az.cmd', verified: { on: '2026-10-12', version: '2.91.0', uninstall: true }, note: 'Use the -x64 MSI. The aka.ms/installazurecliwindows link Microsoft\'s quick-start uses is the 32-bit build, which lands in Program Files (x86). Installing the 64-bit MSI over it removes the 32-bit one, but CLI extensions then need reinstalling. Open a new shell before az is on PATH.' },
+  { name: 'PDF24 Creator', match: { product: /pdf24/i, file: /pdf24-creator.*\.msi/i }, install: 'msiexec /i "{file}" /qn AUTOUPDATE=No', uninstall: 'msiexec /x "{file}" /qn', detect: 'C:\\Program Files\\PDF24\\pdf24.exe', verified: { on: '2026-10-12', version: '11.30.1', uninstall: true }, note: 'Adds a "PDF24" virtual printer, registers PDF24 as a PDF reader and extends the Explorer right-click menu - each has a property to turn it off. Property values are Yes/No, not 1/0.',
+    properties: [
+      { name: 'AUTOUPDATE', value: 'No', why: 'Disable PDF24\'s own updater.' },
+      { name: 'REGISTERREADER', value: 'No', why: 'Don\'t make PDF24 a PDF reader / default handler.' },
+      { name: 'EXTENDSHELLCONTEXTMENU', value: 'No', why: 'No PDF24 entry in the Explorer right-click menu.' },
+      { name: 'DESKTOPICONS', value: 'No', why: 'No desktop icons.' },
+    ] },
+  { name: 'TreeSize Free', match: { product: /treesize free/i, file: /TreeSizeFree.*Setup/i }, install: '{file} /VERYSILENT /SUPPRESSMSGBOXES /NORESTART /ALLUSERS', uninstall: '"%ProgramFiles%\\JAM Software\\TreeSize Free\\unins000.exe" /VERYSILENT /SUPPRESSMSGBOXES /NORESTART', verified: { on: '2026-10-12', version: '4.8.1', uninstall: true }, note: 'Inno Setup. /ALLUSERS matters - winget\'s default is a per-user install into %LocalAppData%\\Programs. The download is TreeSizeFreeSetup.exe with no version in the name, so record which version you packaged.' },
 ];
 
 /** First catalog entry whose product/filename match the detected metadata, or null. */

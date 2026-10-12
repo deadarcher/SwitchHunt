@@ -22,6 +22,7 @@ const entries = CATALOG.map((e) => ({
   uninstall: e.uninstall ?? null,
   detect: e.detect ?? null,
   note: e.note ?? null,
+  verified: e.verified ?? null,
 }));
 
 const out = {
@@ -37,10 +38,13 @@ console.log(`wrote catalog/catalog.json (${entries.length} entries)`);
 // Human-readable browse table (CATALOG.md). Built with string concat to dodge backtick-escaping.
 const esc = (s: string) => s.replace(/\|/g, '\\|');
 const code = (s: string | null | undefined) => (s ? '`' + esc(s) + '`' : '-');
+// Lab evidence column: only entries carrying erified (copied from a recorded harness run) get one.
+const lab = (v: { on: string; version: string; uninstall?: boolean } | undefined) =>
+  v ? v.on + ' (v' + esc(v.version) + (v.uninstall ? ', + uninstall' : '') + ')' : '-';
 const rows = CATALOG.map(
   (e) =>
     '| ' + esc(e.name) + ' | ' + code(e.install) + ' | ' + code(e.uninstall) + ' | ' +
-    code(e.detect) + ' | ' + (e.note ? esc(e.note) : '') + ' |',
+    code(e.detect) + ' | ' + lab(e.verified) + ' | ' + (e.note ? esc(e.note) : '') + ' |',
 );
 const mdLines = [
   '# SwitchHunt catalog',
@@ -53,8 +57,8 @@ const mdLines = [
   '',
   'Got one we miss? [Submit it with the issue form](https://github.com/deadarcher/SwitchHunt/issues/new?template=silent-install-string.yml) (no coding needed) - or PR `src/lib/catalog.ts` ([CONTRIBUTING](CONTRIBUTING.md)).',
   '',
-  '| App | Silent install | Silent uninstall | Detection (file) | Notes |',
-  '|---|---|---|---|---|',
+  '| App | Silent install | Silent uninstall | Detection (file) | Lab-tested as SYSTEM | Notes |',
+  '|---|---|---|---|---|---|',
   ...rows,
   '',
 ];
