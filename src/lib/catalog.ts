@@ -59,6 +59,16 @@ export const CATALOG: CatalogEntry[] = [
     uninstall: '{file} /silent /uninstall',
     note: 'Self-extracting; the switches live in the inner bootstrapper. Add /includeSSON for pass-through SSO, and ADDLOCAL="ReceiverInside,ICA_Client,USB,DesktopViewer,WebHelper" to pick components.',
   },
+  // BEFORE the classic entry: the bootstrapper's ProductName is "Microsoft Teams Direct Installer", which the
+  // classic entry's /microsoft teams/ would otherwise claim (first match wins). Lab-tested 2026-10-16, see Batch 4.
+  {
+    name: 'Microsoft Teams (new, machine-wide)',
+    match: { product: /teams direct installer|teamsbootstrapper/i, file: /teamsbootstrapper/i },
+    install: '{file} -p -o "C:\\path\\to\\MSTeams-x64.msix"',
+    uninstall: '{file} -x',
+    verified: { on: '2026-10-16', version: '26260.1717.5229.7049', uninstall: true },
+    note: 'Not an MSI and not in Add/Remove Programs: -p PROVISIONS the Teams MSIX for every user on the machine (check with Get-AppxProvisionedPackage -Online, DisplayName MSTeams). Plain -p downloads the MSIX from Microsoft at install time; -o points it at a local MSTeams-x64.msix instead, which is what you want for a deployment tool or a machine without open internet. -x removes the provisioned package. Windows 11 often already has MSTeams provisioned; the bootstrapper replaces it.',
+  },
   {
     name: 'Microsoft Teams (classic machine-wide)',
     match: { product: /teams machine-wide|microsoft teams/i, file: /Teams_windows|teams.*x64\.msi/i },
@@ -317,6 +327,23 @@ export const CATALOG: CatalogEntry[] = [
       { name: 'EXTENDSHELLCONTEXTMENU', value: 'No', why: 'No PDF24 entry in the Explorer right-click menu.' },
       { name: 'DESKTOPICONS', value: 'No', why: 'No desktop icons.' },
     ] },
+  // Batch 4, 2026-10-16. Same lab rule as Batch 3: exact string run AS SYSTEM on a Windows 11 VM (HYD-CLIENT3),
+  // judged by Add/Remove Programs, then the exact uninstall judged the same way. (New Teams sits near the top.)
+  { name: 'OpenVPN Community', match: { product: /^openvpn 2/i, file: /OpenVPN-2\..*amd64\.msi/i }, install: 'msiexec /i "{file}" /qn /norestart', uninstall: 'msiexec /x "{file}" /qn /norestart', verified: { on: '2026-10-16', version: '2.7.5-I001', uninstall: true }, note: 'The community client (OpenVPN GUI), not OpenVPN Connect. Installs the TAP / ovpn-dco network driver silently as SYSTEM with no driver prompt. Profiles go in C:\\Program Files\\OpenVPN\\config (machine-wide) or %USERPROFILE%\\OpenVPN\\config; non-admin users need to be in the local "OpenVPN Administrators" group to start a connection from the GUI.' },
+  { name: 'Microsoft Visual C++ 2015-2022 Redistributable (x64)', match: { product: /visual c\+\+ 2015-2022 redistributable \(x64\)/i, file: /vc_redist\.x64\.exe/i }, install: '{file} /install /quiet /norestart', uninstall: '{file} /uninstall /quiet /norestart', verified: { on: '2026-10-16', version: '14.44.35211', uninstall: true }, note: 'One redistributable covers 2015 through 2022 (all 14.x). 32-bit apps need vc_redist.x86.exe as well, even on 64-bit Windows. Running an OLDER build where a newer one is installed exits 1638 (a newer version is already installed), which is success for a deployment. 3010 means a reboot is pending.' },
+  { name: 'Microsoft Windows Desktop Runtime 8 (x64)', match: { product: /windows desktop runtime - 8\./i, file: /windowsdesktop-runtime-8.*-win-x64\.exe/i }, install: '{file} /install /quiet /norestart', uninstall: '{file} /uninstall /quiet /norestart', verified: { on: '2026-10-16', version: '8.0.32', uninstall: true }, note: 'What WinForms / WPF apps built on .NET 8 need (HandBrake 1.11 is one); it is a different download from the ASP.NET Core runtime and the plain .NET runtime. It shows TWO entries in Add/Remove Programs, the bundle and the runtime; the bundle exe with /uninstall removed both in testing.' },
+  { name: 'HandBrake', match: { file: /HandBrake-.*-Win_GUI\.exe/i }, install: '{file} /S', uninstall: '"C:\\Program Files\\HandBrake\\uninst.exe" /S', verified: { on: '2026-10-16', version: '1.11.2', uninstall: true }, note: 'NSIS, so /S is case-sensitive. The installer carries no product name, so this matches on the file name. HandBrake 1.11 needs the .NET 8 Desktop Runtime: deploy that first (it was installed first in testing).' },
+  { name: 'Krita', match: { product: /^krita/i, file: /krita-x64-.*-setup\.exe/i }, install: '{file} /S', uninstall: '"C:\\Program Files\\Krita (x64)\\uninstall.exe" /S', verified: { on: '2026-10-16', version: '5.3.4', uninstall: true }, note: 'NSIS, so /S is case-sensitive. Installs to C:\\Program Files\\Krita (x64), which is where the uninstall string points.' },
+  { name: '1Password', match: { product: /^1password$/i, file: /1PasswordSetup.*\.msi/i }, install: 'msiexec /i "{file}" /qn /norestart', uninstall: 'msiexec /x "{file}" /qn /norestart', verified: { on: '2026-10-16', version: '8.12.40', uninstall: true }, note: 'The MSI installed machine-wide as SYSTEM with no prompts. Each user still signs in to their own account after the install.' },
+  { name: 'Box Drive', match: { product: /^box$/i, file: /BoxDrive.*\.msi/i }, install: 'msiexec /i "{file}" /qn /norestart', uninstall: 'msiexec /x "{file}" /qn /norestart', verified: { on: '2026-10-16', version: '2.55.140', uninstall: true }, note: 'Machine-wide MSI. It registers in Add/Remove Programs as plain "Box", which matters if you detect or uninstall by name. Each user signs in to Box after the install.' },
+  { name: 'Box Tools', match: { product: /^box tools/i, file: /BoxToolsInstaller.*AdminInstall\.msi/i }, install: 'msiexec /i "{file}" /qn /norestart', uninstall: 'msiexec /x "{file}" /qn /norestart', verified: { on: '2026-10-16', version: '4.32.0.1324', uninstall: true }, note: 'Use BoxToolsInstaller-AdminInstall.msi, the admin build Box publishes alongside the regular BoxToolsInstaller.exe. It installed silently as SYSTEM with no prompts.' },
+  { name: 'Puppet Agent', match: { product: /^puppet agent/i, file: /puppet-agent-.*x64.*\.msi/i }, install: 'msiexec /i "{file}" /qn /norestart PUPPET_SERVER=puppet.example.com PUPPET_AGENT_STARTUP_MODE=Automatic', uninstall: 'msiexec /x "{file}" /qn /norestart', verified: { on: '2026-10-16', version: '8.10.0', uninstall: true }, note: 'Set PUPPET_SERVER or the agent looks for a host literally named "puppet". Lab-tested with PUPPET_AGENT_STARTUP_MODE=Manual so the test VM did not try to check in; Automatic is what you want in production.',
+    properties: [
+      { name: 'PUPPET_SERVER', value: 'puppet.example.com', why: 'Your Puppet server.' },
+      { name: 'PUPPET_AGENT_STARTUP_MODE', value: 'Automatic', why: 'Automatic, Manual or Disabled service start.' },
+      { name: 'PUPPET_AGENT_CERTNAME', value: '', why: 'Override the certificate name (defaults to the FQDN).' },
+    ] },
+  { name: 'Visual Studio 2010 Tools for Office Runtime (VSTO)', match: { product: /tools for office runtime/i, file: /vstor_redist\.exe/i }, install: '{file} /q /norestart', verified: { on: '2026-10-16', version: '10.0.60917' }, note: 'Still required by many Office add-ins, including current ones. Installs two entries in Add/Remove Programs (10.0.60917 and a 10.0.60922 language pack). No uninstall string is published: msiexec /x on its product code hung as SYSTEM in testing, and a hanging uninstall is worse than none.' },
   { name: 'TreeSize Free', match: { product: /treesize free/i, file: /TreeSizeFree.*Setup/i }, install: '{file} /VERYSILENT /SUPPRESSMSGBOXES /NORESTART /ALLUSERS', uninstall: '"%ProgramFiles%\\JAM Software\\TreeSize Free\\unins000.exe" /VERYSILENT /SUPPRESSMSGBOXES /NORESTART', verified: { on: '2026-10-12', version: '4.8.1', uninstall: true }, note: 'Inno Setup. /ALLUSERS matters - winget\'s default is a per-user install into %LocalAppData%\\Programs. The download is TreeSizeFreeSetup.exe with no version in the name, so record which version you packaged.' },
 ];
 

@@ -1,6 +1,6 @@
 {
   "_comment": "GENERATED from src/lib/catalog.ts by scripts/gen-catalog.ts - do not hand-edit. Regenerate: npm run gen:catalog",
-  "count": 62,
+  "count": 73,
   "entries": [
     {
       "name": "Citrix Workspace",
@@ -13,6 +13,22 @@
       "detect": null,
       "note": "Self-extracting; the switches live in the inner bootstrapper. Add /includeSSON for pass-through SSO, and ADDLOCAL=\"ReceiverInside,ICA_Client,USB,DesktopViewer,WebHelper\" to pick components.",
       "verified": null
+    },
+    {
+      "name": "Microsoft Teams (new, machine-wide)",
+      "match": {
+        "product": "teams direct installer|teamsbootstrapper",
+        "file": "teamsbootstrapper"
+      },
+      "install": "{file} -p -o \"C:\\path\\to\\MSTeams-x64.msix\"",
+      "uninstall": "{file} -x",
+      "detect": null,
+      "note": "Not an MSI and not in Add/Remove Programs: -p PROVISIONS the Teams MSIX for every user on the machine (check with Get-AppxProvisionedPackage -Online, DisplayName MSTeams). Plain -p downloads the MSIX from Microsoft at install time; -o points it at a local MSTeams-x64.msix instead, which is what you want for a deployment tool or a machine without open internet. -x removes the provisioned package. Windows 11 often already has MSTeams provisioned; the bootstrapper replaces it.",
+      "verified": {
+        "on": "2026-10-16",
+        "version": "26260.1717.5229.7049",
+        "uninstall": true
+      }
     },
     {
       "name": "Microsoft Teams (classic machine-wide)",
@@ -860,6 +876,165 @@
         "on": "2026-10-12",
         "version": "11.30.1",
         "uninstall": true
+      }
+    },
+    {
+      "name": "OpenVPN Community",
+      "match": {
+        "product": "^openvpn 2",
+        "file": "OpenVPN-2\\..*amd64\\.msi"
+      },
+      "install": "msiexec /i \"{file}\" /qn /norestart",
+      "uninstall": "msiexec /x \"{file}\" /qn /norestart",
+      "detect": null,
+      "note": "The community client (OpenVPN GUI), not OpenVPN Connect. Installs the TAP / ovpn-dco network driver silently as SYSTEM with no driver prompt. Profiles go in C:\\Program Files\\OpenVPN\\config (machine-wide) or %USERPROFILE%\\OpenVPN\\config; non-admin users need to be in the local \"OpenVPN Administrators\" group to start a connection from the GUI.",
+      "verified": {
+        "on": "2026-10-16",
+        "version": "2.7.5-I001",
+        "uninstall": true
+      }
+    },
+    {
+      "name": "Microsoft Visual C++ 2015-2022 Redistributable (x64)",
+      "match": {
+        "product": "visual c\\+\\+ 2015-2022 redistributable \\(x64\\)",
+        "file": "vc_redist\\.x64\\.exe"
+      },
+      "install": "{file} /install /quiet /norestart",
+      "uninstall": "{file} /uninstall /quiet /norestart",
+      "detect": null,
+      "note": "One redistributable covers 2015 through 2022 (all 14.x). 32-bit apps need vc_redist.x86.exe as well, even on 64-bit Windows. Running an OLDER build where a newer one is installed exits 1638 (a newer version is already installed), which is success for a deployment. 3010 means a reboot is pending.",
+      "verified": {
+        "on": "2026-10-16",
+        "version": "14.44.35211",
+        "uninstall": true
+      }
+    },
+    {
+      "name": "Microsoft Windows Desktop Runtime 8 (x64)",
+      "match": {
+        "product": "windows desktop runtime - 8\\.",
+        "file": "windowsdesktop-runtime-8.*-win-x64\\.exe"
+      },
+      "install": "{file} /install /quiet /norestart",
+      "uninstall": "{file} /uninstall /quiet /norestart",
+      "detect": null,
+      "note": "What WinForms / WPF apps built on .NET 8 need (HandBrake 1.11 is one); it is a different download from the ASP.NET Core runtime and the plain .NET runtime. It shows TWO entries in Add/Remove Programs, the bundle and the runtime; the bundle exe with /uninstall removed both in testing.",
+      "verified": {
+        "on": "2026-10-16",
+        "version": "8.0.32",
+        "uninstall": true
+      }
+    },
+    {
+      "name": "HandBrake",
+      "match": {
+        "product": null,
+        "file": "HandBrake-.*-Win_GUI\\.exe"
+      },
+      "install": "{file} /S",
+      "uninstall": "\"C:\\Program Files\\HandBrake\\uninst.exe\" /S",
+      "detect": null,
+      "note": "NSIS, so /S is case-sensitive. The installer carries no product name, so this matches on the file name. HandBrake 1.11 needs the .NET 8 Desktop Runtime: deploy that first (it was installed first in testing).",
+      "verified": {
+        "on": "2026-10-16",
+        "version": "1.11.2",
+        "uninstall": true
+      }
+    },
+    {
+      "name": "Krita",
+      "match": {
+        "product": "^krita",
+        "file": "krita-x64-.*-setup\\.exe"
+      },
+      "install": "{file} /S",
+      "uninstall": "\"C:\\Program Files\\Krita (x64)\\uninstall.exe\" /S",
+      "detect": null,
+      "note": "NSIS, so /S is case-sensitive. Installs to C:\\Program Files\\Krita (x64), which is where the uninstall string points.",
+      "verified": {
+        "on": "2026-10-16",
+        "version": "5.3.4",
+        "uninstall": true
+      }
+    },
+    {
+      "name": "1Password",
+      "match": {
+        "product": "^1password$",
+        "file": "1PasswordSetup.*\\.msi"
+      },
+      "install": "msiexec /i \"{file}\" /qn /norestart",
+      "uninstall": "msiexec /x \"{file}\" /qn /norestart",
+      "detect": null,
+      "note": "The MSI installed machine-wide as SYSTEM with no prompts. Each user still signs in to their own account after the install.",
+      "verified": {
+        "on": "2026-10-16",
+        "version": "8.12.40",
+        "uninstall": true
+      }
+    },
+    {
+      "name": "Box Drive",
+      "match": {
+        "product": "^box$",
+        "file": "BoxDrive.*\\.msi"
+      },
+      "install": "msiexec /i \"{file}\" /qn /norestart",
+      "uninstall": "msiexec /x \"{file}\" /qn /norestart",
+      "detect": null,
+      "note": "Machine-wide MSI. It registers in Add/Remove Programs as plain \"Box\", which matters if you detect or uninstall by name. Each user signs in to Box after the install.",
+      "verified": {
+        "on": "2026-10-16",
+        "version": "2.55.140",
+        "uninstall": true
+      }
+    },
+    {
+      "name": "Box Tools",
+      "match": {
+        "product": "^box tools",
+        "file": "BoxToolsInstaller.*AdminInstall\\.msi"
+      },
+      "install": "msiexec /i \"{file}\" /qn /norestart",
+      "uninstall": "msiexec /x \"{file}\" /qn /norestart",
+      "detect": null,
+      "note": "Use BoxToolsInstaller-AdminInstall.msi, the admin build Box publishes alongside the regular BoxToolsInstaller.exe. It installed silently as SYSTEM with no prompts.",
+      "verified": {
+        "on": "2026-10-16",
+        "version": "4.32.0.1324",
+        "uninstall": true
+      }
+    },
+    {
+      "name": "Puppet Agent",
+      "match": {
+        "product": "^puppet agent",
+        "file": "puppet-agent-.*x64.*\\.msi"
+      },
+      "install": "msiexec /i \"{file}\" /qn /norestart PUPPET_SERVER=puppet.example.com PUPPET_AGENT_STARTUP_MODE=Automatic",
+      "uninstall": "msiexec /x \"{file}\" /qn /norestart",
+      "detect": null,
+      "note": "Set PUPPET_SERVER or the agent looks for a host literally named \"puppet\". Lab-tested with PUPPET_AGENT_STARTUP_MODE=Manual so the test VM did not try to check in; Automatic is what you want in production.",
+      "verified": {
+        "on": "2026-10-16",
+        "version": "8.10.0",
+        "uninstall": true
+      }
+    },
+    {
+      "name": "Visual Studio 2010 Tools for Office Runtime (VSTO)",
+      "match": {
+        "product": "tools for office runtime",
+        "file": "vstor_redist\\.exe"
+      },
+      "install": "{file} /q /norestart",
+      "uninstall": null,
+      "detect": null,
+      "note": "Still required by many Office add-ins, including current ones. Installs two entries in Add/Remove Programs (10.0.60917 and a 10.0.60922 language pack). No uninstall string is published: msiexec /x on its product code hung as SYSTEM in testing, and a hanging uninstall is worse than none.",
+      "verified": {
+        "on": "2026-10-16",
+        "version": "10.0.60917"
       }
     },
     {
