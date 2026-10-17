@@ -4,7 +4,7 @@ Hand-verified silent-install strings for apps whose switches you can't derive fr
 custom CLIs, mandatory keys, compressed payloads. `{file}` is replaced with the dropped installer name at
 runtime. For well-known apps the catalog also carries the real uninstall command and a file-detection path.
 
-**89 entries.** Generated from `src/lib/catalog.ts` - do not hand-edit; run `npm run gen:catalog`.
+**93 entries.** Generated from `src/lib/catalog.ts` - do not hand-edit; run `npm run gen:catalog`.
 
 Got one we miss? [Submit it with the issue form](https://github.com/deadarcher/SwitchHunt/issues/new?template=silent-install-string.yml) (no coding needed) - or PR `src/lib/catalog.ts` ([CONTRIBUTING](CONTRIBUTING.md)).
 
@@ -98,4 +98,8 @@ Got one we miss? [Submit it with the issue form](https://github.com/deadarcher/S
 | Microsoft Visual C++ 2010 Redistributable (x64) | `{file} /q /norestart` | `msiexec /x {1D8E6291-B0D5-35EC-8441-6616F567A0F7} /qn /norestart` | - | 2026-10-17 (v10.0.40219, + uninstall) | Different switches from the newer ones: 2010 takes /q, not /install /quiet, and is removed by its MSI product code (the one shown, for 10.0.40219 SP1 x64). |
 | Microsoft Windows Desktop Runtime 6 (x64) | `{file} /install /quiet /norestart` | `{file} /uninstall /quiet /norestart` | - | 2026-10-17 (v6.0.36, + uninstall) | .NET 6 is out of Microsoft support; install it only for an app that still needs it. Shows two entries in Add/Remove Programs; the bundle exe with /uninstall removed both. |
 | Microsoft Windows Desktop Runtime 9 (x64) | `{file} /install /quiet /norestart` | `{file} /uninstall /quiet /norestart` | - | 2026-10-17 (v9.0.21, + uninstall) | Shows two entries in Add/Remove Programs; the bundle exe with /uninstall removed both. |
+| Omnissa (VMware) Horizon Client | `{file} /silent /norestart` | - | - | 2026-10-17 (v8.19.0) | Burn bundle; it installs USB redirection and other drivers, so plan a reboot. No uninstall string is published: removing it through its MSI returned 3010 and it stayed in Add/Remove Programs until a reboot, so treat removal as reboot-required. |
+| Lenovo System Update | `{file} /VERYSILENT /NORESTART` | `"C:\Program Files (x86)\Lenovo\System Update\unins000.exe" /VERYSILENT /NORESTART` | - | 2026-10-17 (v5.08.04.85, + uninstall) | Inno Setup. It is a 32-bit app, so it installs under Program Files (x86). It installed and uninstalled cleanly on a non-Lenovo VM. |
+| PDF-XChange Editor | `msiexec /i "{file}" /qn /norestart` | `msiexec /x "{file}" /qn /norestart` | - | 2026-10-17 (v11.1.0.0, + uninstall) | Without a licence key it installs the free edition, which watermarks anything edited with the paid tools. |
+| SQL Server Management Studio 20 | `{file} /install /quiet /norestart` | `{file} /uninstall /quiet /norestart` | - | 2026-10-17 (v20.2.1, + uninstall) | SSMS 20 is the last Burn-bundle release; SSMS 21 and later install through the Visual Studio installer with different switches. The uninstall was tested through the copy Burn caches under C:\ProgramData\Package Cache, which is the same file and switches. |
 | TreeSize Free | `{file} /VERYSILENT /SUPPRESSMSGBOXES /NORESTART /ALLUSERS` | `"%ProgramFiles%\JAM Software\TreeSize Free\unins000.exe" /VERYSILENT /SUPPRESSMSGBOXES /NORESTART` | - | 2026-10-12 (v4.8.1, + uninstall) | Inno Setup. /ALLUSERS matters - winget's default is a per-user install into %LocalAppData%\Programs. The download is TreeSizeFreeSetup.exe with no version in the name, so record which version you packaged. |

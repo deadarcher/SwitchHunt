@@ -1,6 +1,6 @@
 {
   "_comment": "GENERATED from src/lib/catalog.ts by scripts/gen-catalog.ts - do not hand-edit. Regenerate: npm run gen:catalog",
-  "count": 89,
+  "count": 93,
   "entries": [
     {
       "name": "Citrix Workspace",
@@ -1290,6 +1290,69 @@
       "verified": {
         "on": "2026-10-17",
         "version": "9.0.21",
+        "uninstall": true
+      }
+    },
+    {
+      "name": "Omnissa (VMware) Horizon Client",
+      "match": {
+        "product": "^(omnissa|vmware) horizon client",
+        "file": "(Omnissa|VMware)-Horizon-Client-.*\\.exe"
+      },
+      "install": "{file} /silent /norestart",
+      "uninstall": null,
+      "detect": null,
+      "note": "Burn bundle; it installs USB redirection and other drivers, so plan a reboot. No uninstall string is published: removing it through its MSI returned 3010 and it stayed in Add/Remove Programs until a reboot, so treat removal as reboot-required.",
+      "verified": {
+        "on": "2026-10-17",
+        "version": "8.19.0"
+      }
+    },
+    {
+      "name": "Lenovo System Update",
+      "match": {
+        "product": "^lenovo system update",
+        "file": "system_update_.*\\.exe"
+      },
+      "install": "{file} /VERYSILENT /NORESTART",
+      "uninstall": "\"C:\\Program Files (x86)\\Lenovo\\System Update\\unins000.exe\" /VERYSILENT /NORESTART",
+      "detect": null,
+      "note": "Inno Setup. It is a 32-bit app, so it installs under Program Files (x86). It installed and uninstalled cleanly on a non-Lenovo VM.",
+      "verified": {
+        "on": "2026-10-17",
+        "version": "5.08.04.85",
+        "uninstall": true
+      }
+    },
+    {
+      "name": "PDF-XChange Editor",
+      "match": {
+        "product": "^pdf-xchange editor",
+        "file": "EditorV\\d+\\.x64\\.msi"
+      },
+      "install": "msiexec /i \"{file}\" /qn /norestart",
+      "uninstall": "msiexec /x \"{file}\" /qn /norestart",
+      "detect": null,
+      "note": "Without a licence key it installs the free edition, which watermarks anything edited with the paid tools.",
+      "verified": {
+        "on": "2026-10-17",
+        "version": "11.1.0.0",
+        "uninstall": true
+      }
+    },
+    {
+      "name": "SQL Server Management Studio 20",
+      "match": {
+        "product": "^microsoft sql server management studio - 20",
+        "file": "SSMS-Setup-ENU\\.exe"
+      },
+      "install": "{file} /install /quiet /norestart",
+      "uninstall": "{file} /uninstall /quiet /norestart",
+      "detect": null,
+      "note": "SSMS 20 is the last Burn-bundle release; SSMS 21 and later install through the Visual Studio installer with different switches. The uninstall was tested through the copy Burn caches under C:\\ProgramData\\Package Cache, which is the same file and switches.",
+      "verified": {
+        "on": "2026-10-17",
+        "version": "20.2.1",
         "uninstall": true
       }
     },
