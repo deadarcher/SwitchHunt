@@ -1,6 +1,6 @@
 {
   "_comment": "GENERATED from src/lib/catalog.ts by scripts/gen-catalog.ts - do not hand-edit. Regenerate: npm run gen:catalog",
-  "count": 73,
+  "count": 89,
   "entries": [
     {
       "name": "Citrix Workspace",
@@ -1035,6 +1035,262 @@
       "verified": {
         "on": "2026-10-16",
         "version": "10.0.60917"
+      }
+    },
+    {
+      "name": "Paint.NET",
+      "match": {
+        "product": "^paint\\.net$",
+        "file": "paint\\.net.*winmsi.*\\.msi"
+      },
+      "install": "msiexec /i \"{file}\" /qn /norestart",
+      "uninstall": "msiexec /x \"{file}\" /qn /norestart",
+      "detect": null,
+      "note": "Use the .winmsi download, which is an MSI inside a zip: unzip it and deploy the MSI.",
+      "verified": {
+        "on": "2026-10-17",
+        "version": "5.1.12",
+        "uninstall": true
+      }
+    },
+    {
+      "name": "Amazon Corretto JDK (x64)",
+      "match": {
+        "product": "^amazon corretto \\(x64\\)",
+        "file": "amazon-corretto-\\d+.*-windows-x64\\.msi"
+      },
+      "install": "msiexec /i \"{file}\" /qn /norestart",
+      "uninstall": "msiexec /x \"{file}\" /qn /norestart",
+      "detect": null,
+      "note": "Free OpenJDK build from Amazon, a common Oracle Java replacement. The MSI product name carries no Java version (\"Amazon Corretto (x64)\"), so check the version column, not the name, when you detect it.",
+      "verified": {
+        "on": "2026-10-17",
+        "version": "17.0.20.12",
+        "uninstall": true
+      }
+    },
+    {
+      "name": "Amazon Corretto JRE 8 (x64)",
+      "match": {
+        "product": "^amazon corretto jre 8",
+        "file": "amazon-corretto-8.*-windows-x64-jre\\.msi"
+      },
+      "install": "msiexec /i \"{file}\" /qn /norestart",
+      "uninstall": "msiexec /x \"{file}\" /qn /norestart",
+      "detect": null,
+      "note": "The Java 8 runtime only (no compiler), for old apps that still need Java 8 without an Oracle licence.",
+      "verified": {
+        "on": "2026-10-17",
+        "version": "1.8.0.504",
+        "uninstall": true
+      }
+    },
+    {
+      "name": "PeaZip",
+      "match": {
+        "product": "^peazip",
+        "file": "peazip-.*\\.WIN64\\.exe"
+      },
+      "install": "{file} /VERYSILENT /SUPPRESSMSGBOXES /NORESTART",
+      "uninstall": "\"C:\\Program Files\\PeaZip\\unins000.exe\" /VERYSILENT /SUPPRESSMSGBOXES /NORESTART",
+      "detect": null,
+      "note": "Inno Setup. The installer is NOT code-signed, so AppLocker or WDAC publisher rules will not allow it; allow it by hash or path instead.",
+      "verified": {
+        "on": "2026-10-17",
+        "version": "11.2.0",
+        "uninstall": true
+      }
+    },
+    {
+      "name": "Brave",
+      "match": {
+        "product": "^braveSoftware update$",
+        "file": "BraveBrowserStandaloneSetup"
+      },
+      "install": "{file} /silent /install",
+      "uninstall": "\"C:\\Program Files\\BraveSoftware\\Brave-Browser\\Application\\<version>\\Installer\\setup.exe\" --uninstall --system-level --force-uninstall",
+      "detect": null,
+      "note": "Use the STANDALONE setup: the small default download fetches the browser at install time. Run as SYSTEM it installs machine-wide. The uninstall path contains the version number, so read it from the UninstallString in the registry. The uninstall exits 19, which Chromium-based installers use for a successful uninstall, not a failure.",
+      "verified": {
+        "on": "2026-10-17",
+        "version": "1.97.56",
+        "uninstall": true
+      }
+    },
+    {
+      "name": "Inkscape",
+      "match": {
+        "product": "^inkscape$",
+        "file": "inkscape-.*-x64.*\\.msi"
+      },
+      "install": "msiexec /i \"{file}\" /qn /norestart",
+      "uninstall": "msiexec /x \"{file}\" /qn /norestart",
+      "detect": null,
+      "note": "The MSI is signed with Inkscape's own certificate, which Windows does not chain to a trusted root, so publisher-based allow rules will not match it.",
+      "verified": {
+        "on": "2026-10-17",
+        "version": "1.4.4",
+        "uninstall": true
+      }
+    },
+    {
+      "name": "WinDirStat",
+      "match": {
+        "product": "^windirstat",
+        "file": "WinDirStat-x64\\.msi"
+      },
+      "install": "msiexec /i \"{file}\" /qn /norestart",
+      "uninstall": "msiexec /x \"{file}\" /qn /norestart",
+      "detect": null,
+      "note": null,
+      "verified": {
+        "on": "2026-10-17",
+        "version": "2.9.3",
+        "uninstall": true
+      }
+    },
+    {
+      "name": "Nextcloud Desktop",
+      "match": {
+        "product": "^nextcloud$",
+        "file": "Nextcloud-.*-x64\\.msi"
+      },
+      "install": "msiexec /i \"{file}\" /qn /norestart REBOOT=ReallySuppress",
+      "uninstall": "msiexec /x \"{file}\" /qn /norestart",
+      "detect": null,
+      "note": "REBOOT=ReallySuppress keeps the install from rebooting the machine on its own. Each user connects their own Nextcloud account afterwards.",
+      "verified": {
+        "on": "2026-10-17",
+        "version": "35.0.0",
+        "uninstall": true
+      }
+    },
+    {
+      "name": "GitHub CLI",
+      "match": {
+        "product": "^github cli$",
+        "file": "gh_.*_windows_amd64\\.msi"
+      },
+      "install": "msiexec /i \"{file}\" /qn /norestart",
+      "uninstall": "msiexec /x \"{file}\" /qn /norestart",
+      "detect": null,
+      "note": null,
+      "verified": {
+        "on": "2026-10-17",
+        "version": "2.102.0",
+        "uninstall": true
+      }
+    },
+    {
+      "name": "DBeaver Community",
+      "match": {
+        "product": "^dbeaver",
+        "file": "dbeaver-ce-.*-windows-x86_64\\.exe"
+      },
+      "install": "{file} /S /allusers",
+      "uninstall": "\"C:\\Program Files\\DBeaver\\Uninstall.exe\" /allusers /S",
+      "detect": null,
+      "note": "NSIS, so /S is case-sensitive. Add /allusers or it installs for one user only.",
+      "verified": {
+        "on": "2026-10-17",
+        "version": "26.2.0",
+        "uninstall": true
+      }
+    },
+    {
+      "name": "Microsoft Visual C++ 2013 Redistributable (x64)",
+      "match": {
+        "product": "visual c\\+\\+ 2013 redistributable \\(x64\\)",
+        "file": null
+      },
+      "install": "{file} /install /quiet /norestart",
+      "uninstall": "{file} /uninstall /quiet /norestart",
+      "detect": null,
+      "note": "Older apps still need it; it installs side by side with 2015-2022. Microsoft names the download vcredist_x64.exe for every year, so this matches on the product name, not the file name.",
+      "verified": {
+        "on": "2026-10-17",
+        "version": "12.0.40664",
+        "uninstall": true
+      }
+    },
+    {
+      "name": "Microsoft Visual C++ 2013 Redistributable (x86)",
+      "match": {
+        "product": "visual c\\+\\+ 2013 redistributable \\(x86\\)",
+        "file": null
+      },
+      "install": "{file} /install /quiet /norestart",
+      "uninstall": "{file} /uninstall /quiet /norestart",
+      "detect": null,
+      "note": "For 32-bit apps, even on 64-bit Windows. Matches on the product name, because the file is just vcredist_x86.exe.",
+      "verified": {
+        "on": "2026-10-17",
+        "version": "12.0.40664",
+        "uninstall": true
+      }
+    },
+    {
+      "name": "Microsoft Visual C++ 2012 Redistributable (x64)",
+      "match": {
+        "product": "visual c\\+\\+ 2012 redistributable \\(x64\\)",
+        "file": null
+      },
+      "install": "{file} /install /quiet /norestart",
+      "uninstall": "{file} /uninstall /quiet /norestart",
+      "detect": null,
+      "note": "Update 4 (11.0.61030), the last 2012 build. Matches on the product name, because the file is just vcredist_x64.exe.",
+      "verified": {
+        "on": "2026-10-17",
+        "version": "11.0.61030",
+        "uninstall": true
+      }
+    },
+    {
+      "name": "Microsoft Visual C++ 2010 Redistributable (x64)",
+      "match": {
+        "product": "visual c\\+\\+ 2010\\s+x64 redistributable",
+        "file": null
+      },
+      "install": "{file} /q /norestart",
+      "uninstall": "msiexec /x {1D8E6291-B0D5-35EC-8441-6616F567A0F7} /qn /norestart",
+      "detect": null,
+      "note": "Different switches from the newer ones: 2010 takes /q, not /install /quiet, and is removed by its MSI product code (the one shown, for 10.0.40219 SP1 x64).",
+      "verified": {
+        "on": "2026-10-17",
+        "version": "10.0.40219",
+        "uninstall": true
+      }
+    },
+    {
+      "name": "Microsoft Windows Desktop Runtime 6 (x64)",
+      "match": {
+        "product": "windows desktop runtime - 6\\.",
+        "file": "windowsdesktop-runtime-6.*-win-x64\\.exe"
+      },
+      "install": "{file} /install /quiet /norestart",
+      "uninstall": "{file} /uninstall /quiet /norestart",
+      "detect": null,
+      "note": ".NET 6 is out of Microsoft support; install it only for an app that still needs it. Shows two entries in Add/Remove Programs; the bundle exe with /uninstall removed both.",
+      "verified": {
+        "on": "2026-10-17",
+        "version": "6.0.36",
+        "uninstall": true
+      }
+    },
+    {
+      "name": "Microsoft Windows Desktop Runtime 9 (x64)",
+      "match": {
+        "product": "windows desktop runtime - 9\\.",
+        "file": "windowsdesktop-runtime-9.*-win-x64\\.exe"
+      },
+      "install": "{file} /install /quiet /norestart",
+      "uninstall": "{file} /uninstall /quiet /norestart",
+      "detect": null,
+      "note": "Shows two entries in Add/Remove Programs; the bundle exe with /uninstall removed both.",
+      "verified": {
+        "on": "2026-10-17",
+        "version": "9.0.21",
+        "uninstall": true
       }
     },
     {
