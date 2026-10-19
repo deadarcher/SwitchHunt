@@ -1,6 +1,6 @@
 {
   "_comment": "GENERATED from src/lib/catalog.ts by scripts/gen-catalog.ts - do not hand-edit. Regenerate: npm run gen:catalog",
-  "count": 93,
+  "count": 103,
   "entries": [
     {
       "name": "Citrix Workspace",
@@ -134,6 +134,22 @@
       "verified": {
         "on": "2026-07-29",
         "version": "2.55.0.3"
+      }
+    },
+    {
+      "name": "Zoom Outlook Plugin",
+      "match": {
+        "product": "^zoom outlook plugin",
+        "file": "ZoomOutlookPlugin.*\\.msi"
+      },
+      "install": "msiexec /i \"{file}\" /qn /norestart",
+      "uninstall": "msiexec /x \"{file}\" /qn /norestart",
+      "detect": null,
+      "note": "A separate MSI from the Zoom client, so a Zoom rule will not deploy it. It installed and uninstalled cleanly on a VM with no Outlook present, so deploying it ahead of Office is safe.",
+      "verified": {
+        "on": "2026-10-18",
+        "version": "7.2.0",
+        "uninstall": true
       }
     },
     {
@@ -1369,6 +1385,150 @@
       "verified": {
         "on": "2026-10-12",
         "version": "4.8.1",
+        "uninstall": true
+      }
+    },
+    {
+      "name": "Dell Command | Update",
+      "match": {
+        "product": "^dell command \\| update",
+        "file": "Dell-Command-Update.*\\.exe"
+      },
+      "install": "{file} /s",
+      "uninstall": "msiexec /x {96322198-2DBD-4C30-8BAA-E61A5340C663} /qn /norestart",
+      "detect": null,
+      "note": "A Dell Update Package. Run on its own it exited 4 and installed nothing: 4 is the DUP code for a hard dependency, and DCU 5.x needs the .NET 8 Desktop Runtime. Deploy that runtime first and the same command installs cleanly, even on a non-Dell machine. The uninstall product code shown is for 5.7.0; read the current one from Add/Remove Programs for other versions.",
+      "verified": {
+        "on": "2026-10-18",
+        "version": "5.7.0",
+        "uninstall": true
+      }
+    },
+    {
+      "name": "Microsoft Remote Desktop client (MSRDC)",
+      "match": {
+        "product": "^remote desktop$",
+        "file": "RemoteDesktop_.*_x64\\.msi"
+      },
+      "install": "msiexec /i \"{file}\" /qn /norestart ALLUSERS=1",
+      "uninstall": "msiexec /x \"{file}\" /qn /norestart",
+      "detect": null,
+      "note": "The client for Azure Virtual Desktop and Windows 365. ALLUSERS=1 is what makes it a machine-wide install; leave it off and the MSI installs for one user. It shows in Add/Remove Programs as just \"Remote Desktop\".",
+      "verified": {
+        "on": "2026-10-18",
+        "version": "1.2.7422.0",
+        "uninstall": true
+      }
+    },
+    {
+      "name": "Google Earth Pro",
+      "match": {
+        "product": "^google earth pro",
+        "file": "googleearth.*pro.*\\.exe"
+      },
+      "install": "{file} OMAHA=1",
+      "uninstall": "msiexec /x {3D62248F-DE98-4CEB-A1D9-E69073E085D3} /qn /norestart",
+      "detect": null,
+      "note": "There is no /S or /silent: OMAHA=1 is the property that runs the setup silently. Underneath it is an MSI, so it is removed by product code (the one shown is for 7.3.7.1327).",
+      "verified": {
+        "on": "2026-10-18",
+        "version": "7.3.7.1327",
+        "uninstall": true
+      }
+    },
+    {
+      "name": "Devolutions Remote Desktop Manager",
+      "match": {
+        "product": "^remote desktop manager",
+        "file": "Setup\\.RemoteDesktopManager.*\\.msi"
+      },
+      "install": "msiexec /i \"{file}\" /qn /norestart",
+      "uninstall": "msiexec /x \"{file}\" /qn /norestart",
+      "detect": null,
+      "note": "A plain machine-wide MSI with no required properties. It is about 350 MB, so stage it close to the endpoints rather than pulling it over a WAN link for every machine.",
+      "verified": {
+        "on": "2026-10-18",
+        "version": "2026.3.12.0",
+        "uninstall": true
+      }
+    },
+    {
+      "name": "mRemoteNG",
+      "match": {
+        "product": "^mremoteng",
+        "file": "mRemoteNG-Installer.*\\.msi"
+      },
+      "install": "msiexec /i \"{file}\" /qn /norestart",
+      "uninstall": "msiexec /x \"{file}\" /qn /norestart",
+      "detect": null,
+      "note": "Use the MSI from the GitHub release, not the portable zip. Connection files live in each user's profile, so uninstalling the app does not remove anyone's saved connections.",
+      "verified": {
+        "on": "2026-10-18",
+        "version": "1.76.20.24615",
+        "uninstall": true
+      }
+    },
+    {
+      "name": "Microsoft Visual C++ 2012 Redistributable (x86)",
+      "match": {
+        "product": "visual c\\+\\+ 2012 redistributable \\(x86\\)",
+        "file": null
+      },
+      "install": "{file} /install /quiet /norestart",
+      "uninstall": "{file} /uninstall /quiet /norestart",
+      "detect": null,
+      "note": "Update 4 (11.0.61030). Same switches as the x64 package; 32-bit apps need this one even on 64-bit Windows, so many machines carry both.",
+      "verified": {
+        "on": "2026-10-18",
+        "version": "11.0.61030",
+        "uninstall": true
+      }
+    },
+    {
+      "name": "Microsoft Visual C++ 2010 Redistributable (x86)",
+      "match": {
+        "product": "visual c\\+\\+ 2010\\s+x86 redistributable",
+        "file": null
+      },
+      "install": "{file} /q /norestart",
+      "uninstall": "msiexec /x {F0C3E5D1-1ADE-321E-8167-68EF0DE699A5} /qn /norestart",
+      "detect": null,
+      "note": "Like the 2010 x64 package it takes /q, not /install /quiet, and is removed by its MSI product code (the one shown, for 10.0.40219 SP1 x86).",
+      "verified": {
+        "on": "2026-10-18",
+        "version": "10.0.40219",
+        "uninstall": true
+      }
+    },
+    {
+      "name": "Microsoft ODBC Driver 18 for SQL Server",
+      "match": {
+        "product": "^microsoft odbc driver 18",
+        "file": "msodbcsql.*\\.msi"
+      },
+      "install": "msiexec /i \"{file}\" /qn /norestart IACCEPTMSODBCSQLLICENSETERMS=YES",
+      "uninstall": "msiexec /x \"{file}\" /qn /norestart",
+      "detect": null,
+      "note": "IACCEPTMSODBCSQLLICENSETERMS=YES is required for a silent install. It also needs the Visual C++ 2015-2022 x64 runtime; the lab VM already had one, so deploy the runtime first on a clean image. Driver 18 encrypts connections by default, unlike 17, so test connection strings before replacing 17.",
+      "verified": {
+        "on": "2026-10-18",
+        "version": "18.7.1.1",
+        "uninstall": true
+      }
+    },
+    {
+      "name": "Microsoft Azure Storage Explorer",
+      "match": {
+        "product": "^microsoft azure storage explorer",
+        "file": "StorageExplorer.*\\.exe"
+      },
+      "install": "{file} /VERYSILENT /NORESTART /ALLUSERS",
+      "uninstall": "\"%ProgramFiles%\\Microsoft Azure Storage Explorer\\unins000.exe\" /VERYSILENT /NORESTART",
+      "detect": null,
+      "note": "Inno Setup. With /ALLUSERS it installed machine-wide under Program Files, which is what a fleet deploy wants; keep it, since Inno installers that allow per-user installs can otherwise land in a single profile.",
+      "verified": {
+        "on": "2026-10-18",
+        "version": "1.46.0",
         "uninstall": true
       }
     }
