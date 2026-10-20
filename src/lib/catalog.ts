@@ -232,7 +232,9 @@ export const CATALOG: CatalogEntry[] = [
     name: 'Google Chrome (Enterprise)',
     match: { product: /^google chrome$/i, file: /googlechrome.*enterprise|chrome.*enterprise/i },
     install: 'msiexec /i "{file}" /qn /norestart',
-    note: 'Use the Enterprise MSI, not the consumer stub exe, for fleet deploys.',
+    // 2026-10-20: the MSI's custom actions take only Google's internal tag/uninstall plumbing (TAGSTRING,
+    // UNINSTALLCMDARGS); nothing an admin is meant to set. Say so, so a short list does not read as a miss.
+    note: 'Use the Enterprise MSI, not the consumer stub exe, for fleet deploys. Its custom actions take only Google\'s own updater plumbing (TAGSTRING replaces the whole install tag; UNINSTALLCMDLINE/UNINSTALLCMDARGS drive removal), nothing to configure Chrome with: that is done by policy after install (the ADMX templates via GPO or Intune, or HKLM\\SOFTWARE\\Policies\\Google\\Chrome).',
   },
   { name: 'Mozilla Firefox', match: { product: /mozilla firefox/i, file: /Firefox.*Setup/i }, install: '{file} /S', uninstall: '"%ProgramFiles%\\Mozilla Firefox\\uninstall\\helper.exe" /S', detect: 'C:\\Program Files\\Mozilla Firefox\\firefox.exe', verified: { on: '2026-07-29', version: '153.0.1', uninstall: true }, note: 'NSIS. Drop a policies.json / use the MSI for managed settings.' },
   { name: '7-Zip', match: { product: /^7-zip/i, file: /7z\d.*\.exe/i }, install: '{file} /S', uninstall: '"%ProgramFiles%\\7-Zip\\Uninstall.exe" /S', detect: 'C:\\Program Files\\7-Zip\\7zFM.exe' },

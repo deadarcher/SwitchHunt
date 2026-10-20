@@ -578,6 +578,11 @@ const description =
     background: var(--surface, #fff); font: inherit;
   }
   #result .catalog-prop-chip:hover { background: var(--brand-bg, rgba(99,102,241,0.08)); }
+  #result .catalog-props-added {
+    flex: 1 0 100%; text-align: left; background: none; border: none; padding: 0; font: inherit;
+    font-size: 13px; color: var(--brand); text-decoration: underline; cursor: pointer;
+  }
+  #result .catalog-props-added[hidden] { display: none; }
   #result .catalog-prop-chip code { font-size: 12px; color: var(--brand); white-space: nowrap; }
   #result .catalog-prop-why { font-size: 12px; color: var(--ink2); }
 
@@ -1376,6 +1381,14 @@ const description =
         lbl.className = 'catalog-props-label';
         lbl.textContent = 'Known properties for this app - click to add to the command builder:';
         wrap.append(lbl);
+        let added = 0;
+        const addedNote = document.createElement('button');
+        addedNote.type = 'button';
+        addedNote.className = 'catalog-props-added';
+        addedNote.hidden = true;
+        addedNote.addEventListener('click', () =>
+          document.getElementById('b-props')?.scrollIntoView({ behavior: 'smooth', block: 'center' }));
+        wrap.append(addedNote);
         for (const cp of cat.properties) {
           const chip = document.createElement('button');
           chip.type = 'button';
@@ -1397,7 +1410,12 @@ const description =
               .some((k) => ((k as HTMLElement).textContent || (k as HTMLInputElement).value || '').trim().toUpperCase() === cp.name.toUpperCase());
             if (!already) addPropRow(host, cp.name, cp.value ?? '', true);
             recomputeBuilder?.();
-            host.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            // The chip goes away instead of jumping the page down to the builder (user report, 2026-10-20: the jump
+            // lost your place and left the chip clickable again). A link line says where it went.
+            chip.remove();
+            added++;
+            addedNote.hidden = false;
+            addedNote.textContent = `${added} added to the command builder below - show me`;
           });
           wrap.append(chip);
         }
