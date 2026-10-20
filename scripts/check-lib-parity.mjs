@@ -62,6 +62,13 @@ const GROUPS = {
   // RFF's deploy wizard (2026-08-25): the SwitchHunt panel needs only the detector + MSI parser,
   // not burn/intunewin/psadt - the wizard suggests switches, it never repackages.
   wizard:    ['msi.ts', 'installerDetect.ts'],
+  // VBScript to PowerShell (2026-09-22). One file, but the most-edited engine of the lot: it is
+  // refined against a private measurement corpus, so every fix lands HERE first and the public
+  // repo only ever receives copies. That is exactly the one-way flow that drifts unnoticed.
+  vbs:       ['vbsToPs1.mjs'],
+  // Intune detection rule (2026-09-26). The rule engine plus the shared read-the-file helper. Its
+  // public repo also carries msi.ts + installerDetect.ts, which it compares under `wizard`.
+  detection: ['readInstaller.ts', 'intuneDetection.ts'],
 };
 
 /**
@@ -70,7 +77,7 @@ const GROUPS = {
  * An entry is either a path (its lib is at src/lib) or {path, lib} when the repo nests it
  * elsewhere - RFF.Web is a project inside the platform monorepo, not a repo root.
  */
-const ALL_TOOLS = ['perf', 'drift', 'baseline', 'collector', 'procmon'];
+const ALL_TOOLS = ['perf', 'drift', 'baseline', 'collector', 'procmon', 'vbs', 'detection'];
 const CANDIDATES = [
   { path: resolve(repoRoot, '..', 'rff-marketing'), groups: ['installer', ...ALL_TOOLS] },
   { path: 'C:/temp/rff-marketing',                  groups: ['installer', ...ALL_TOOLS] },
@@ -93,6 +100,10 @@ const CANDIDATES = [
   { path: 'C:/temp/hardened',                       groups: ['drift', 'baseline', 'collector'] },
   { path: resolve(repoRoot, '..', 'denied'),        groups: ['procmon'] },
   { path: 'C:/temp/denied',                         groups: ['procmon'] },
+  { path: resolve(repoRoot, '..', 'vbs-to-powershell'), groups: ['vbs'] },
+  { path: 'C:/temp/vbs-to-powershell',                  groups: ['vbs'] },
+  { path: resolve(repoRoot, '..', 'intune-detection'), groups: ['wizard', 'detection'] },
+  { path: 'C:/temp/intune-detection',                  groups: ['wizard', 'detection'] },
 ];
 
 /**
