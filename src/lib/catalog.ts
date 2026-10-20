@@ -267,6 +267,9 @@ export const CATALOG: CatalogEntry[] = [
     properties: [
       { name: 'REGISTER_ALL_MSO_TYPES', value: '1', why: 'Take over .docx/.xlsx/.pptx associations from Office.' },
       { name: 'REGISTER_NO_MSO_TYPES',  value: '1', why: 'Leave Office file associations alone.' },
+      // 2026-10-20 sweep: both defined (=1) and used by the 26.2.5 MSI; documented on LibreOffice's own users list.
+      { name: 'CREATEDESKTOPLINK', value: '0', why: 'No desktop shortcut.' },
+      { name: 'ISCHECKFORPRODUCTUPDATES', value: '0', why: 'Turn off the built-in update check (you deploy updates).' },
     ] },
   // Batch 3, 2026-10-12. Same two-source rule, PLUS every entry below was LAB-TESTED before publishing:
   // the exact install string run AS SYSTEM on a Windows 11 VM (HYD-CLIENT1) via the SwitchHunt harness,
@@ -425,6 +428,12 @@ export const CATALOG: CatalogEntry[] = [
     properties: [
       { name: 'VALUE_OF_PASSWORD', value: '', why: 'The VNC password (up to 8 characters). Needs SET_PASSWORD=1 alongside it.' },
       { name: 'ADDLOCAL', value: 'Viewer', why: 'Install only the viewer, with no server on the machine.' },
+      // 2026-10-20 sweep: TightVNC's "Installing from MSI Packages" guide, each name checked present in the 2.8.89 MSI.
+      // Every VALUE_OF_X is ignored unless SET_X=1 is passed too.
+      { name: 'VALUE_OF_IPACCESSCONTROL', value: '10.0.0.0-10.255.255.255:0,0.0.0.0-255.255.255.255:1', why: 'Allow only your range, deny the rest (rules "IP1-IP2:0|1|2" = allow/deny/ask). Needs SET_IPACCESSCONTROL=1.' },
+      { name: 'VALUE_OF_VIEWONLYPASSWORD', value: '', why: 'A separate view-only password. Needs SET_VIEWONLYPASSWORD=1.' },
+      { name: 'VALUE_OF_CONTROLPASSWORD', value: '', why: 'Password for the server\'s settings. Needs SET_CONTROLPASSWORD=1 and SET_USECONTROLAUTHENTICATION=1 VALUE_OF_USECONTROLAUTHENTICATION=1.' },
+      { name: 'SERVER_ADD_FIREWALL_EXCEPTION', value: '0', why: 'Do not open the Windows Firewall for the server (default adds a rule).' },
     ] },
   { name: 'TortoiseGit', match: { product: /^tortoisegit/i, file: /TortoiseGit-.*-64bit\.msi/i }, install: 'msiexec /i "{file}" /qn /norestart', uninstall: 'msiexec /x "{file}" /qn /norestart', verified: { on: '2026-10-19', version: '2.19.1.0', uninstall: true }, note: 'Installs cleanly without Git for Windows, but it does nothing useful until Git is there, so deploy Git first.' },
   { name: 'R for Windows', match: { product: /^r for windows/i, file: /R-[\d.]+-win\.exe/i }, install: '{file} /VERYSILENT /SUPPRESSMSGBOXES /NORESTART /ALLUSERS', uninstall: '"%ProgramFiles%\\R\\R-4.6.1\\unins000.exe" /VERYSILENT /SUPPRESSMSGBOXES /NORESTART', verified: { on: '2026-10-19', version: '4.6.1', uninstall: true }, note: 'Inno Setup. /ALLUSERS puts it in Program Files for everyone. Each R version installs into its own R-x.y.z folder and leaves earlier versions in place, so the uninstall path changes with every release. RStudio Desktop is a separate install that failed as SYSTEM in the lab (exit 666660 from its elevation plugin), so it is not listed.' },
@@ -443,7 +452,20 @@ export const CATALOG: CatalogEntry[] = [
   { name: 'Logi Options+', match: { product: /^logi options\+/i, file: /logioptionsplus_installer\.exe/i }, install: '{file} /quiet /analytics no', uninstall: '"%ProgramFiles%\\LogiOptionsPlus\\logioptionsplus_updater.exe" --uninstall --full --shadow /quiet', verified: { on: '2026-10-20', version: '2.9.994631', uninstall: true }, note: 'The installer is a bootstrapper that downloads the app: the 2.8 download installed 2.9, so machines need internet access and you cannot pin a version this way. /analytics no turns usage analytics off.' },
   { name: 'Royal TS', match: { product: /^royal ts/i, file: /RoyalTSInstaller_.*_x64\.msi/i }, install: 'msiexec /i "{file}" /qn /norestart', uninstall: 'msiexec /x "{file}" /qn /norestart', verified: { on: '2026-10-20', version: '7.4.50922.0', uninstall: true }, note: 'A plain machine-wide MSI with no required properties. It registers as "Royal TS V7" and is about 260 MB, so stage it close to the endpoints.' },
   { name: 'Beyond Compare 5', match: { product: /^beyond compare 5/i, file: /BCompare-5.*\.exe/i }, install: '{file} /VERYSILENT /SUPPRESSMSGBOXES /NORESTART /ALLUSERS', uninstall: '"%ProgramFiles%\\Beyond Compare 5\\unins000.exe" /VERYSILENT /SUPPRESSMSGBOXES /NORESTART', verified: { on: '2026-10-20', version: '5.2.6.32774', uninstall: true }, note: 'Inno Setup, and /ALLUSERS is required: without it the setup sat for more than eight minutes as SYSTEM and had to be killed; with it the install finished in seconds and registered as "Beyond Compare 5 (All users)". The licence key is entered separately.' },
-  { name: 'TechSmith Camtasia', match: { product: /^camtasia/i, file: /camtasia.*\.msi/i }, install: 'msiexec /i "{file}" /qn /norestart', uninstall: 'msiexec /x "{file}" /qn /norestart', verified: { on: '2026-10-20', version: '26.2.2.19936', uninstall: true }, note: 'Deploy the Visual C++ 2015-2022 x64 runtime first: Camtasia 26.2 refuses to install unless it is 14.51.36231 or newer, and a silent install reports that only as exit 1603. Its MSI log says "Camtasia requires Microsoft Visual C++ 2019 Redistributable package v14.51.36231 or later". With a current runtime the same command installed and uninstalled cleanly.' },
+  { name: 'TechSmith Camtasia', match: { product: /^camtasia/i, file: /camtasia.*\.msi/i }, install: 'msiexec /i "{file}" /qn /norestart', uninstall: 'msiexec /x "{file}" /qn /norestart', verified: { on: '2026-10-20', version: '26.2.2.19936', uninstall: true }, note: 'Deploy the Visual C++ 2015-2022 x64 runtime first: Camtasia 26.2 refuses to install unless it is 14.51.36231 or newer, and a silent install reports that only as exit 1603. Its MSI log says "Camtasia requires Microsoft Visual C++ 2019 Redistributable package v14.51.36231 or later". With a current runtime the same command installed and uninstalled cleanly.',
+    // 2026-10-20 sweep: TechSmith's "Camtasia MSI Installation Guide" table, each name checked present in the 26.2.2 MSI
+    // (TSC_SOFTWARE_USER from the guide is NOT in 26.2, so it is left out).
+    properties: [
+      { name: 'TSC_SOFTWARE_KEY', value: '', why: 'Your licence key.' },
+      { name: 'TSC_DESKTOP_LINK', value: '0', why: 'No desktop shortcut.' },
+      { name: 'TSC_UPDATE_ENABLE', value: '0', why: 'Turn off the update check (you deploy updates).' },
+      { name: 'TSC_INST_PP_ADDIN', value: '0', why: 'Skip the PowerPoint add-in.' },
+      { name: 'TSC_INCLUDETECHSMITHAGENT', value: '0', why: 'Do not install the TechSmith Agent.' },
+      { name: 'TSC_ANALYTICS_OPTIN', value: 'NO', why: 'Opt out of usage analytics.' },
+      { name: 'TSC_CRASHREPORTING_OPTIN', value: 'NO', why: 'Opt out of crash reporting.' },
+      { name: 'TSC_SHOWREGISTERONLINEDIALOG', value: 'false', why: 'No register-online prompt.' },
+      { name: 'TSC_LANG', value: 'ENU', why: 'Product language: ENU, DEU, JPN, FRA, CHS, ESN or PTB.' },
+    ] },
   // From a user report (2026-10-20): SwitchHunt offered plain /qn, which failed as SYSTEM; the engine now flags these.
   { name: 'Arduino IDE', match: { product: /^arduino ide/i, file: /arduino-ide_.*_Windows_64bit\.msi/i }, install: 'msiexec /i "{file}" ALLUSERS=1 /qn /norestart', uninstall: 'msiexec /x "{file}" /qn /norestart', verified: { on: '2026-10-20', version: '2.3.10', uninstall: true }, note: 'A dual-purpose MSI (ALLUSERS=2, MSIINSTALLPERUSER=1) that defaults to a per-user install. Run as SYSTEM without ALLUSERS=1 it exited 1603 and installed nothing; with it, it installed into Program Files for every user. To change the folder use APPLICATIONFOLDER="C:\\Apps\\ArduinoIDE"; INSTALLDIR is ignored by this package. Admin install (/a) only unpacks files, it does not install.' },
 ];

@@ -499,13 +499,24 @@ export function analyzeMsi(buf: ArrayBuffer): MsiAnalysis | null {
     }
   }
 
+  // What the INSTALLER sets for itself, never the admin (2026-10-20 catalog sweep of 104 installers): AppSearch
+  // results like WIN11FOUND, NETFRAMEWORK40FULL or OpenVPN's ACTIVETAPWINDOWS6ADAPTERS, and Burn's BURNMSI* handoff
+  // flags. Authoring tools list them in SecureCustomProperties and LaunchConditions, so they read as "likely" options.
+  // A directory key found by AppSearch (a previous INSTALLDIR) stays, because you can still set it.
+  const caRows = db.table('CustomAction') ?? [];
+  const caSet = new Set<string>();
+  for (const ca of caRows) if ((((ca.Type as number) ?? 0) & 0x3f) === 51) caSet.add((ca.Source ?? '') as string);
+  const dirKeys = new Set((db.table('Directory') ?? []).map((d) => (d.Directory ?? '') as string));
+  const searched = new Set((db.table('AppSearch') ?? []).map((a) => (a.Property ?? '') as string));
+  const setByInstaller = (n: string): boolean => (searched.has(n) && !dirKeys.has(n)) || n.startsWith('BURNMSI');
+
   // likely / optional: public props bound to a setup-wizard Edit field
   const controls = db.table('Control');
   if (controls) {
     for (const c of controls) {
       const type = (c.Type ?? '') as string;
       const prop = (c.Property ?? '') as string;
-      if (!prop || !isPublicName(prop) || !/edit/i.test(type)) continue;
+      if (!prop || !isPublicName(prop) || !/edit/i.test(type) || STD_PROPS.has(prop) || setByInstaller(prop)) continue;
       const hasDefault = get(prop) !== '';
       bump(
         prop,
@@ -525,7 +536,7 @@ export function analyzeMsi(buf: ArrayBuffer): MsiAnalysis | null {
   // "properties" (user report, 2026-10-20).
   const upgradeProps = new Set((db.table('Upgrade') ?? []).map((u) => (u.ActionProperty ?? '') as string).filter(Boolean));
   const isUserProp = (n: string): boolean =>
-    isPublicName(n) && !STD_PROPS.has(n) && !upgradeProps.has(n) &&
+    isPublicName(n) && !STD_PROPS.has(n) && !upgradeProps.has(n) && !setByInstaller(n) &&
     !n.startsWith('ARP') && !n.startsWith('WIX_') && !n.startsWith('MSI');
   for (const name of splitList(get('SecureCustomProperties'))) {
     if (!isUserProp(name)) continue;
@@ -544,11 +555,6 @@ export function analyzeMsi(buf: ArrayBuffer): MsiAnalysis | null {
   // AllowDowngrade, FirewallPortStart...) lives only there; this tier missed all 17 of them (user report,
   // 2026-10-20). msiexec uppercases command-line names, so the documented mixed-case spelling IS this property.
   // Skipped: directories, anything another CA or AppSearch sets (internal state), and the usual internals.
-  const caRows = db.table('CustomAction') ?? [];
-  const caSet = new Set<string>();
-  for (const ca of caRows) if ((((ca.Type as number) ?? 0) & 0x3f) === 51) caSet.add((ca.Source ?? '') as string);
-  const dirKeys = new Set((db.table('Directory') ?? []).map((d) => (d.Directory ?? '') as string));
-  const searched = new Set((db.table('AppSearch') ?? []).map((a) => (a.Property ?? '') as string));
   for (const ca of caRows) {
     const text = `${(ca.Source ?? '') as string} ${(ca.Target ?? '') as string}`;
     for (const m of text.matchAll(/\[([A-Z_][A-Z0-9_.]*)\]/g)) {
@@ -564,7 +570,9 @@ export function analyzeMsi(buf: ArrayBuffer): MsiAnalysis | null {
     for (const c of conds) {
       const cond = (c.Condition ?? '') as string;
       for (const tok of cond.match(PROP_TOKEN) ?? []) {
-        if (isPublicName(tok) && !STD_PROPS.has(tok) && propMap.has(tok)) {
+        // A search result gating a LaunchCondition is a PREREQUISITE check (Inkscape's EXISTING_INKSCAPE_BIN_*,
+        // mRemoteNG's MINIMUM_RDP_VERSION_INSTALLED), not a value you pass.
+        if (isPublicName(tok) && !STD_PROPS.has(tok) && propMap.has(tok) && !setByInstaller(tok)) {
           bump(tok, 'required', `Gated by a LaunchCondition (${truncate(cond, 50)}) - install fails if unmet.`);
         }
       }
