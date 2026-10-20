@@ -42,7 +42,8 @@ export interface CatalogEntry {
 }
 
 export interface CatalogProperty {
-  /** Public (all-uppercase) property name, exactly as passed on the command line. */
+  /** Property name exactly as passed on the command line. Usually all-uppercase (public), but a vendor's own
+   *  installer code can read mixed-case ones the MSI never declares (Zoom's zNoDesktopShortCut). */
   name: string;
   /** The value that does the useful thing. Empty when the admin must supply it (a licence key). */
   value?: string;
@@ -131,7 +132,21 @@ export const CATALOG: CatalogEntry[] = [
     name: 'Zoom',
     match: { product: /^zoom/i, file: /Zoom.*\.msi|ZoomInstallerFull/i },
     install: 'msiexec /i "{file}" /qn ZoomAutoUpdate="true"',
-    note: 'Use the MSI (not the per-user exe) for fleet deploys; pass ZConfig/ZoomAutoUpdate properties for config.',
+    note: 'Use the MSI (not the per-user exe) for fleet deploys. Zoom\'s options are passed straight to its own installer code, so the MSI declares no defaults for them; the ones below are from Zoom\'s MSI deployment docs. Names are case-insensitive on the command line (msiexec uppercases them).',
+    // From Zoom's published MSI options table (support.zoom.com KB0064484). The engine also finds all of them, as
+    // [ZNODESKTOPSHORTCUT] etc. in the CustomAction table (the CA-reference tier, 2026-10-20); this list adds the
+    // useful values and what each one does.
+    properties: [
+      { name: 'zNoDesktopShortCut', value: 'True', why: 'No desktop shortcut on install or update.' },
+      { name: 'zSilentStart', value: '1', why: 'Start Zoom in the system tray after a reboot.' },
+      { name: 'zSSOHost', value: '', why: 'Pre-fill your SSO vanity URL (e.g. yourco.zoom.us).' },
+      { name: 'DisableAdvancedSharingService', value: '1', why: 'Skip the CPT service (no UAC prompt during updates; remote control of all apps then prompts).' },
+      { name: 'NoForceInstall', value: 'True', why: 'Wait for an in-progress meeting to end; pair with MSIRestartManagerControl=Disable.' },
+      { name: 'MSIRestartManagerControl', value: 'Disable', why: 'The other half of NoForceInstall: Restart Manager leaves a running Zoom alone.' },
+      { name: 'FirewallPortStart', value: '7200', why: 'Create Zoom\'s inbound/outbound firewall rules from this port; set FirewallPortEnd with it.' },
+      { name: 'FirewallPortEnd', value: '17210', why: 'Last port of the firewall rule range; Zoom says never set one without the other.' },
+      { name: 'AllowDowngrade', value: '1', why: 'Allow an older MSI over a newer install (blocked by default).' },
+    ],
   },
   {
     name: 'Oracle VM VirtualBox',

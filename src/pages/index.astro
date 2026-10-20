@@ -811,7 +811,8 @@ const description =
       const s = cmd.indexOf(' '); return s < 0 ? [cmd, ''] : [cmd.slice(0, s), cmd.slice(s + 1).trim()];
     };
     let installArgs = '';
-    if (r.engine === 'msi') installArgs = (install.match(/[A-Z_][A-Z0-9_]*=("[^"]*"|\S+)/g) ?? []).join(' '); // extra MSI props
+    // Extra MSI props. Mixed case too: Zoom's ZoomAutoUpdate / zNoDesktopShortCut were dropped from the PSADT script.
+    if (r.engine === 'msi') installArgs = (install.match(/(?<![\w.])[A-Za-z_][A-Za-z0-9_.]*=("[^"]*"|\S+)/g) ?? []).join(' ');
     else installArgs = splitProg(install)[1];
     let uninstallFile: string | undefined;
     let uninstallArgs: string | undefined;
@@ -1261,7 +1262,9 @@ const description =
     if (cfg.props) {
       // Seed from the parsed MSI (name+value) or, for Advanced Installer, the harvested names (no values).
       const seeds = r.msi?.required?.length
-        ? r.msi.required.map((p) => ({ name: p.name, value: p.value }))
+        // Optional ones with no default stay in the list above but not in the builder: Zoom has 15 vendor options,
+        // and 15 empty rows would bury the command.
+        ? r.msi.required.filter((p) => p.tier !== 'optional' || p.value).map((p) => ({ name: p.name, value: p.value }))
         : (r.customProperties ?? []).map((name) => ({ name, value: '' }));
       for (const s of seeds) addPropRow(propsHost, s.name, s.value);
       const add = document.createElement('button');

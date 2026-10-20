@@ -457,6 +457,7 @@ const STD_PROPS = new Set([
   'AND', 'OR', 'NOT', 'XOR', 'EQV', 'IMP',
   'ALLUSERS', 'REMOVE', 'REINSTALL', 'REINSTALLMODE', 'TARGETDIR', 'ROOTDRIVE',
   'NEWERVERSIONDETECTED', 'OLDERVERSIONBEENINSTALLED', 'UPGRADEABLE', 'NEWPRODUCTFOUND',
+  'ACTION', 'PATCH', // set by msiexec itself (top-level action, patch list), seen in Epic Print Buddy's CA targets
 ]);
 
 const truncate = (s: string, n: number): string => (s.length > n ? s.slice(0, n - 1) + '…' : s);
@@ -519,8 +520,13 @@ export function analyzeMsi(buf: ArrayBuffer): MsiAnalysis | null {
   // likely / optional: SecureCustomProperties - public props the author exposes for command-line
   // configuration (the custom switches). This is how a UI-less / silently-deployed MSI declares them,
   // when there are no wizard Edit fields to collect them. Filter out WiX/MSI/ARP internals.
+  // Upgrade-table ActionProperties are set BY FindRelatedProducts, never by you, but authoring tools list them in
+  // SecureCustomProperties anyway: Zoom's MSI offered NEWERPRODUCTFOUND and PREVIOUSVERSIONSINSTALLED as its only
+  // "properties" (user report, 2026-10-20).
+  const upgradeProps = new Set((db.table('Upgrade') ?? []).map((u) => (u.ActionProperty ?? '') as string).filter(Boolean));
   const isUserProp = (n: string): boolean =>
-    isPublicName(n) && !STD_PROPS.has(n) && !n.startsWith('ARP') && !n.startsWith('WIX_') && !n.startsWith('MSI');
+    isPublicName(n) && !STD_PROPS.has(n) && !upgradeProps.has(n) &&
+    !n.startsWith('ARP') && !n.startsWith('WIX_') && !n.startsWith('MSI');
   for (const name of splitList(get('SecureCustomProperties'))) {
     if (!isUserProp(name)) continue;
     const hasDefault = get(name) !== '';
@@ -531,6 +537,25 @@ export function analyzeMsi(buf: ArrayBuffer): MsiAnalysis | null {
         ? 'Declared in SecureCustomProperties (command-line configurable) - has a default; override if needed.'
         : 'Declared in SecureCustomProperties - a custom property the author expects on the command line.',
     );
+  }
+
+  // optional: public props the package hands to its OWN custom-action code ("[ZNODESKTOPSHORTCUT]" in a CA's
+  // Source/Target) without declaring them anywhere else. Zoom's whole option set (zNoDesktopShortCut, zSSOHost,
+  // AllowDowngrade, FirewallPortStart...) lives only there; this tier missed all 17 of them (user report,
+  // 2026-10-20). msiexec uppercases command-line names, so the documented mixed-case spelling IS this property.
+  // Skipped: directories, anything another CA or AppSearch sets (internal state), and the usual internals.
+  const caRows = db.table('CustomAction') ?? [];
+  const caSet = new Set<string>();
+  for (const ca of caRows) if ((((ca.Type as number) ?? 0) & 0x3f) === 51) caSet.add((ca.Source ?? '') as string);
+  const dirKeys = new Set((db.table('Directory') ?? []).map((d) => (d.Directory ?? '') as string));
+  const searched = new Set((db.table('AppSearch') ?? []).map((a) => (a.Property ?? '') as string));
+  for (const ca of caRows) {
+    const text = `${(ca.Source ?? '') as string} ${(ca.Target ?? '') as string}`;
+    for (const m of text.matchAll(/\[([A-Z_][A-Z0-9_.]*)\]/g)) {
+      const name = m[1];
+      if (!isUserProp(name) || propMap.has(name) || caSet.has(name) || dirKeys.has(name) || searched.has(name)) continue;
+      bump(name, 'optional', "Passed to the installer's own custom-action code and declared nowhere else - a vendor option, no default.");
+    }
   }
 
   // required: public props gating a LaunchCondition (install aborts if unmet)
