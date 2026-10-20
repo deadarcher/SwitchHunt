@@ -1,6 +1,6 @@
 {
   "_comment": "GENERATED from src/lib/catalog.ts by scripts/gen-catalog.ts - do not hand-edit. Regenerate: npm run gen:catalog",
-  "count": 114,
+  "count": 124,
   "entries": [
     {
       "name": "Citrix Workspace",
@@ -1705,6 +1705,166 @@
       "verified": {
         "on": "2026-10-19",
         "version": "3.01",
+        "uninstall": true
+      }
+    },
+    {
+      "name": "Microsoft Visual C++ 2015-2022 Redistributable (x86)",
+      "match": {
+        "product": "visual c\\+\\+ (2015-2022|v14) redistributable \\(x86\\)",
+        "file": "vc_redist\\.x86\\.exe"
+      },
+      "install": "{file} /install /quiet /norestart",
+      "uninstall": "{file} /uninstall /quiet /norestart",
+      "detect": null,
+      "note": "Releases from 14.50 register in Add/Remove Programs as \"Microsoft Visual C++ v14 Redistributable (x86)\", not \"2015-2022\", so a detection rule that looks for the old name misses every up-to-date machine. 32-bit apps need this one even on 64-bit Windows.",
+      "verified": {
+        "on": "2026-10-20",
+        "version": "14.51.36247",
+        "uninstall": true
+      }
+    },
+    {
+      "name": "Dropbox",
+      "match": {
+        "product": "^dropbox$",
+        "file": "Dropbox.*Offline.?Installer.*\\.exe"
+      },
+      "install": "{file} /S",
+      "uninstall": "\"%ProgramFiles(x86)%\\Dropbox\\Client\\DropboxUninstaller.exe\" /InstallType:MACHINE /S",
+      "detect": null,
+      "note": "Use the offline installer. With plain /S it installed machine-wide in about four minutes as SYSTEM; an older build run with /S /NOLAUNCH hung past 20 minutes in an earlier lab run. The registered uninstall carries /InstallType:MACHINE, which is what removes a machine-wide install.",
+      "verified": {
+        "on": "2026-10-20",
+        "version": "262.4.3183",
+        "uninstall": true
+      }
+    },
+    {
+      "name": "MobaXterm",
+      "match": {
+        "product": "^mobaxterm",
+        "file": "MobaXterm_installer.*\\.msi"
+      },
+      "install": "msiexec /i \"{file}\" /qn /norestart",
+      "uninstall": "msiexec /x \"{file}\" /qn /norestart",
+      "detect": null,
+      "note": "Download the Installer edition, not the Portable one. The zip holds the MSI and MobaXterm_installer.dat, which carries most of the payload (32 MB against a 14 MB MSI), so deploy the two files together from the same folder.",
+      "verified": {
+        "on": "2026-10-20",
+        "version": "26.5.0.5542",
+        "uninstall": true
+      }
+    },
+    {
+      "name": "UltraVNC",
+      "match": {
+        "product": "^ultravnc",
+        "file": "UltraVNC_.*_Setup\\.exe"
+      },
+      "install": "{file} /VERYSILENT /SUPPRESSMSGBOXES /NORESTART",
+      "uninstall": "\"%ProgramFiles%\\uvnc\\UltraVNC\\unins000.exe\" /VERYSILENT /SUPPRESSMSGBOXES /NORESTART",
+      "detect": null,
+      "note": "Inno Setup. To choose components (viewer only, or server with your settings), record the choices once with /SAVEINF=\"setup.inf\" on a test machine and replay them with /LOADINF=\"setup.inf\".",
+      "verified": {
+        "on": "2026-10-20",
+        "version": "1.8.3.0",
+        "uninstall": true
+      }
+    },
+    {
+      "name": "Microsoft Build of OpenJDK 21",
+      "match": {
+        "product": "^microsoft build of openjdk",
+        "file": "microsoft-jdk-.*-windows-x64\\.msi"
+      },
+      "install": "msiexec /i \"{file}\" /qn /norestart",
+      "uninstall": "msiexec /x \"{file}\" /qn /norestart",
+      "detect": null,
+      "note": "A plain MSI. To set JAVA_HOME and PATH as part of the install, add ADDLOCAL=FeatureMain,FeatureEnvironment,FeatureJarFileRunWith,FeatureJavaHome.",
+      "verified": {
+        "on": "2026-10-20",
+        "version": "21.0.12.1",
+        "uninstall": true
+      }
+    },
+    {
+      "name": "Oracle JDK 21",
+      "match": {
+        "product": "^java\\(tm\\) se development kit 21",
+        "file": "jdk-21.*_windows-x64_bin\\.msi"
+      },
+      "install": "msiexec /i \"{file}\" /qn /norestart",
+      "uninstall": "msiexec /x \"{file}\" /qn /norestart",
+      "detect": null,
+      "note": "Check the licence on the exact update you package: Oracle offers JDK 21 free under its No-Fee Terms only for a year after the next LTS release, and later 21 updates move to the OTN licence, which is not free for production use. The Microsoft Build of OpenJDK installs the same way with no such terms.",
+      "verified": {
+        "on": "2026-10-20",
+        "version": "21.0.12",
+        "uninstall": true
+      }
+    },
+    {
+      "name": "Logi Options+",
+      "match": {
+        "product": "^logi options\\+",
+        "file": "logioptionsplus_installer\\.exe"
+      },
+      "install": "{file} /quiet /analytics no",
+      "uninstall": "\"%ProgramFiles%\\LogiOptionsPlus\\logioptionsplus_updater.exe\" --uninstall --full --shadow /quiet",
+      "detect": null,
+      "note": "The installer is a bootstrapper that downloads the app: the 2.8 download installed 2.9, so machines need internet access and you cannot pin a version this way. /analytics no turns usage analytics off.",
+      "verified": {
+        "on": "2026-10-20",
+        "version": "2.9.994631",
+        "uninstall": true
+      }
+    },
+    {
+      "name": "Royal TS",
+      "match": {
+        "product": "^royal ts",
+        "file": "RoyalTSInstaller_.*_x64\\.msi"
+      },
+      "install": "msiexec /i \"{file}\" /qn /norestart",
+      "uninstall": "msiexec /x \"{file}\" /qn /norestart",
+      "detect": null,
+      "note": "A plain machine-wide MSI with no required properties. It registers as \"Royal TS V7\" and is about 260 MB, so stage it close to the endpoints.",
+      "verified": {
+        "on": "2026-10-20",
+        "version": "7.4.50922.0",
+        "uninstall": true
+      }
+    },
+    {
+      "name": "Beyond Compare 5",
+      "match": {
+        "product": "^beyond compare 5",
+        "file": "BCompare-5.*\\.exe"
+      },
+      "install": "{file} /VERYSILENT /SUPPRESSMSGBOXES /NORESTART /ALLUSERS",
+      "uninstall": "\"%ProgramFiles%\\Beyond Compare 5\\unins000.exe\" /VERYSILENT /SUPPRESSMSGBOXES /NORESTART",
+      "detect": null,
+      "note": "Inno Setup, and /ALLUSERS is required: without it the setup sat for more than eight minutes as SYSTEM and had to be killed; with it the install finished in seconds and registered as \"Beyond Compare 5 (All users)\". The licence key is entered separately.",
+      "verified": {
+        "on": "2026-10-20",
+        "version": "5.2.6.32774",
+        "uninstall": true
+      }
+    },
+    {
+      "name": "TechSmith Camtasia",
+      "match": {
+        "product": "^camtasia",
+        "file": "camtasia.*\\.msi"
+      },
+      "install": "msiexec /i \"{file}\" /qn /norestart",
+      "uninstall": "msiexec /x \"{file}\" /qn /norestart",
+      "detect": null,
+      "note": "Deploy the Visual C++ 2015-2022 x64 runtime first: Camtasia 26.2 refuses to install unless it is 14.51.36231 or newer, and a silent install reports that only as exit 1603. Its MSI log says \"Camtasia requires Microsoft Visual C++ 2019 Redistributable package v14.51.36231 or later\". With a current runtime the same command installed and uninstalled cleanly.",
+      "verified": {
+        "on": "2026-10-20",
+        "version": "26.2.2.19936",
         "uninstall": true
       }
     }
