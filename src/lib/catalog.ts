@@ -363,6 +363,11 @@ export const CATALOG: CatalogEntry[] = [
       { name: 'PUPPET_SERVER', value: 'puppet.example.com', why: 'Your Puppet server.' },
       { name: 'PUPPET_AGENT_STARTUP_MODE', value: 'Automatic', why: 'Automatic, Manual or Disabled service start.' },
       { name: 'PUPPET_AGENT_CERTNAME', value: '', why: 'Override the certificate name (defaults to the FQDN).' },
+      // 2026-10-20 sweep: in the MSI's custom actions and Puppet's MSI properties doc (help.puppet.com, Core 8.13).
+      { name: 'PUPPET_CA_SERVER', value: '', why: 'The CA server, when it is not PUPPET_SERVER.' },
+      { name: 'PUPPET_AGENT_ENVIRONMENT', value: '', why: 'The node\'s environment (default production).' },
+      { name: 'PUPPET_AGENT_ACCOUNT_USER', value: '', why: 'Run the agent service as this account instead of LocalSystem (with _PASSWORD and _DOMAIN).' },
+      { name: 'ENABLE_LONG_PATHS', value: 'TRUE', why: 'Long-path support for the agent; also set HKLM\\SYSTEM\\CurrentControlSet\\Control\\FileSystem LongPathsEnabled=1.' },
     ] },
   { name: 'Visual Studio 2010 Tools for Office Runtime (VSTO)', match: { product: /tools for office runtime/i, file: /vstor_redist\.exe/i }, install: '{file} /q /norestart', verified: { on: '2026-10-16', version: '10.0.60917' }, note: 'Still required by many Office add-ins, including current ones. Installs two entries in Add/Remove Programs (10.0.60917 and a 10.0.60922 language pack). No uninstall string is published: msiexec /x on its product code hung as SYSTEM in testing, and a hanging uninstall is worse than none.' },
   // Batch 5, 2026-10-17: the most popular apps still missing (docs/research/market-gaps-2026-10.md). Same lab rule.
@@ -388,7 +393,18 @@ export const CATALOG: CatalogEntry[] = [
   // (1603 as SYSTEM). Behind a vendor login, so not lab-testable here: Cisco Secure Client, FortiClient, Zscaler.
   { name: 'Omnissa (VMware) Horizon Client', match: { product: /^(omnissa|vmware) horizon client/i, file: /(Omnissa|VMware)-Horizon-Client-.*\.exe/i }, install: '{file} /silent /norestart', verified: { on: '2026-10-17', version: '8.19.0' }, note: 'Burn bundle; it installs USB redirection and other drivers, so plan a reboot. No uninstall string is published: removing it through its MSI returned 3010 and it stayed in Add/Remove Programs until a reboot, so treat removal as reboot-required.' },
   { name: 'Lenovo System Update', match: { product: /^lenovo system update/i, file: /system_update_.*\.exe/i }, install: '{file} /VERYSILENT /NORESTART', uninstall: '"C:\\Program Files (x86)\\Lenovo\\System Update\\unins000.exe" /VERYSILENT /NORESTART', verified: { on: '2026-10-17', version: '5.08.04.85', uninstall: true }, note: 'Inno Setup. It is a 32-bit app, so it installs under Program Files (x86). It installed and uninstalled cleanly on a non-Lenovo VM.' },
-  { name: 'PDF-XChange Editor', match: { product: /^pdf-xchange editor/i, file: /EditorV\d+\.x64\.msi/i }, install: 'msiexec /i "{file}" /qn /norestart', uninstall: 'msiexec /x "{file}" /qn /norestart', verified: { on: '2026-10-17', version: '11.1.0.0', uninstall: true }, note: 'Without a licence key it installs the free edition, which watermarks anything edited with the paid tools.' },
+  { name: 'PDF-XChange Editor', match: { product: /^pdf-xchange editor/i, file: /EditorV\d+\.x64\.msi/i }, install: 'msiexec /i "{file}" /qn /norestart', uninstall: 'msiexec /x "{file}" /qn /norestart', verified: { on: '2026-10-17', version: '11.1.0.0', uninstall: true }, note: 'Without a licence key it installs the free edition, which watermarks anything edited with the paid tools.',
+    // 2026-10-20 sweep: every name below is referenced by the 11.1 MSI (custom actions, Registry, wizard fields) and
+    // documented in PDF-XChange's "Switches for MSI Installers" help page.
+    properties: [
+      { name: 'KEYDATA', value: '', why: 'Your licence key (or KEYFILE="\\\\server\\share\\licence.xcvault").' },
+      { name: 'USERNAME', value: '', why: 'Name the licence is registered to.' },
+      { name: 'ORGANIZATION', value: '', why: 'Organisation the licence is registered to.' },
+      { name: 'NOUPDATER', value: '1', why: 'Do not install the PDF-XChange Updater.' },
+      { name: 'SET_AS_DEFAULT', value: '0', why: 'Do not take over as the default PDF app.' },
+      { name: 'DESKTOP_SHORTCUTS', value: '0', why: 'No desktop shortcuts.' },
+      { name: 'VIEW_IN_BROWSERS', value: '0', why: 'Do not register for opening PDFs inside browsers.' },
+    ] },
   { name: 'SQL Server Management Studio 20', match: { product: /^microsoft sql server management studio - 20/i, file: /SSMS-Setup-ENU\.exe/i }, install: '{file} /install /quiet /norestart', uninstall: '{file} /uninstall /quiet /norestart', verified: { on: '2026-10-17', version: '20.2.1', uninstall: true }, note: 'SSMS 20 is the last Burn-bundle release; SSMS 21 and later install through the Visual Studio installer with different switches. The uninstall was tested through the copy Burn caches under C:\\ProgramData\\Package Cache, which is the same file and switches.' },
   { name: 'TreeSize Free', match: { product: /treesize free/i, file: /TreeSizeFree.*Setup/i }, install: '{file} /VERYSILENT /SUPPRESSMSGBOXES /NORESTART /ALLUSERS', uninstall: '"%ProgramFiles%\\JAM Software\\TreeSize Free\\unins000.exe" /VERYSILENT /SUPPRESSMSGBOXES /NORESTART', verified: { on: '2026-10-12', version: '4.8.1', uninstall: true }, note: 'Inno Setup. /ALLUSERS matters - winget\'s default is a per-user install into %LocalAppData%\\Programs. The download is TreeSizeFreeSetup.exe with no version in the name, so record which version you packaged.' },
   { name: 'Dell Command | Update', match: { product: /^dell command \| update/i, file: /Dell-Command-Update.*\.exe/i }, install: '{file} /s', uninstall: 'msiexec /x {96322198-2DBD-4C30-8BAA-E61A5340C663} /qn /norestart', verified: { on: '2026-10-18', version: '5.7.0', uninstall: true }, note: 'A Dell Update Package. Run on its own it exited 4 and installed nothing: 4 is the DUP code for a hard dependency, and DCU 5.x needs the .NET 8 Desktop Runtime. Deploy that runtime first and the same command installs cleanly, even on a non-Dell machine. The uninstall product code shown is for 5.7.0; read the current one from Add/Remove Programs for other versions.' },
