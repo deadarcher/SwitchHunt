@@ -1041,7 +1041,7 @@ const description =
     'msi': {
       ops: [
         { id: 'install', label: 'Install' }, { id: 'repair', label: 'Repair' },
-        { id: 'uninstall', label: 'Uninstall' }, { id: 'admin', label: 'Admin install' },
+        { id: 'uninstall', label: 'Uninstall' }, { id: 'admin', label: 'Admin install (extract)' },
       ],
       passive: true, norestart: true, log: true, dir: true, props: true,
       dirLabel: (op) => (op === 'admin' ? 'Extract to' : 'Install dir'),
@@ -1102,11 +1102,13 @@ const description =
     const code = r.msi?.productCode;
     const p: string[] = [];
     if (r.engine === 'msi') {
-      if (o.op === 'install') p.push(`msiexec /i "${msi}"`);
+      // Dual-purpose MSI (ALLUSERS=2): without ALLUSERS=1 it installs per-user, or fails as SYSTEM (user report, 2026-10-20).
+      if (o.op === 'install') p.push(`msiexec /i "${msi}"${r.msi?.dualPurpose ? ' ALLUSERS=1' : ''}`);
       else if (o.op === 'repair') p.push(`msiexec /f ${code ?? `"${msi}"`}`);
       else if (o.op === 'uninstall') p.push(`msiexec /x ${code ?? `"${msi}"`}`);
       else p.push(`msiexec /a "${msi}"`);
-      if (o.dir && o.op === 'install') p.push(`INSTALLDIR="${o.dir}"`);
+      // The folder property the package actually reads (WIXUI_INSTALLDIR); INSTALLDIR was silently ignored by Arduino IDE.
+      if (o.dir && o.op === 'install') p.push(`${r.msi?.installDirProperty ?? 'INSTALLDIR'}="${o.dir}"`);
       if (o.dir && o.op === 'admin') p.push(`TARGETDIR="${o.dir}"`);
       for (const pr of o.props) if (pr.key && pr.value) p.push(`${pr.key}="${pr.value}"`);
       if (o.ui === 'silent') p.push('/qn'); else if (o.ui === 'passive') p.push('/qb');

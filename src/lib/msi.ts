@@ -435,6 +435,17 @@ export interface MsiAnalysis {
   fileCount?: number;
   /** Components flagged 64-bit (msidbComponentAttributes64bit, 0x100). */
   components64?: number;
+  /**
+   * ALLUSERS=2 AND MSIINSTALLPERUSER=1: a "dual-purpose" package that defaults to a PER-USER install. ALLUSERS=2 alone
+   * installs per-machine when run elevated (Zoom Outlook Plugin and Paint.NET passed as SYSTEM with plain /qn), so the
+   * pair is the trigger, not either one.
+   * Lab, 2026-10-20 (user report, Arduino IDE 2.3.10): plain `/i /qn` as SYSTEM failed with 1603; adding ALLUSERS=1
+   * installed it machine-wide (Program Files, HKLM uninstall entry, all-users Start menu) and it uninstalled cleanly.
+   */
+  dualPurpose?: boolean;
+  /** The directory property the author's setup UI lets you change (WIXUI_INSTALLDIR), when declared. For Arduino IDE it
+   *  is APPLICATIONFOLDER, and INSTALLDIR= was silently ignored in the same lab run. */
+  installDirProperty?: string;
 }
 
 // A public property is settable from the command line: its name is all-uppercase.
@@ -583,5 +594,7 @@ export function analyzeMsi(buf: ArrayBuffer): MsiAnalysis | null {
     platform: db.template ? db.template.split(';')[0].trim() || 'Intel' : undefined,
     fileCount: db.table('File')?.length ?? 0,
     components64: (db.table('Component') ?? []).filter((c) => (((c.Attributes as number) ?? 0) & 0x100) !== 0).length,
+    dualPurpose: get('ALLUSERS') === '2' && get('MSIINSTALLPERUSER') === '1',
+    installDirProperty: isPublicName(get('WIXUI_INSTALLDIR')) ? get('WIXUI_INSTALLDIR') : undefined,
   };
 }

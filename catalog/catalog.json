@@ -1,6 +1,6 @@
 {
   "_comment": "GENERATED from src/lib/catalog.ts by scripts/gen-catalog.ts - do not hand-edit. Regenerate: npm run gen:catalog",
-  "count": 124,
+  "count": 125,
   "entries": [
     {
       "name": "Citrix Workspace",
@@ -1865,6 +1865,22 @@
       "verified": {
         "on": "2026-10-20",
         "version": "26.2.2.19936",
+        "uninstall": true
+      }
+    },
+    {
+      "name": "Arduino IDE",
+      "match": {
+        "product": "^arduino ide",
+        "file": "arduino-ide_.*_Windows_64bit\\.msi"
+      },
+      "install": "msiexec /i \"{file}\" ALLUSERS=1 /qn /norestart",
+      "uninstall": "msiexec /x \"{file}\" /qn /norestart",
+      "detect": null,
+      "note": "A dual-purpose MSI (ALLUSERS=2, MSIINSTALLPERUSER=1) that defaults to a per-user install. Run as SYSTEM without ALLUSERS=1 it exited 1603 and installed nothing; with it, it installed into Program Files for every user. To change the folder use APPLICATIONFOLDER=\"C:\\Apps\\ArduinoIDE\"; INSTALLDIR is ignored by this package. Admin install (/a) only unpacks files, it does not install.",
+      "verified": {
+        "on": "2026-10-20",
+        "version": "2.3.10",
         "uninstall": true
       }
     }

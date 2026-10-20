@@ -661,21 +661,34 @@ function detectCore(buf: ArrayBuffer, fileName?: string): DetectionResult {
     const code = analysis?.productCode;
     // Prefer the real ProductCode GUID for repair/uninstall - it works regardless of the .msi's path.
     const byCode = (op: string) => (code ? `msiexec ${op} ${code} /qn /norestart` : `msiexec ${op} "${msi}" /qn /norestart`);
+    // Dual-purpose package (ALLUSERS=2 + MSIINSTALLPERUSER=1): without ALLUSERS=1 it installs per-user, and as SYSTEM
+    // the Arduino IDE MSI failed outright (1603). User report 2026-10-20; lab-proven, see MsiAnalysis.dualPurpose.
+    const allUsers = analysis?.dualPurpose ? ' ALLUSERS=1' : '';
+    const dirProp = analysis?.installDirProperty ?? 'INSTALLDIR';
 
     return {
       engine: 'msi',
       label: 'Windows Installer (MSI)',
       commands: [
-        { label: 'Install (silent)',        cmd: `msiexec /i "${msi}" /qn /norestart` },
+        { label: allUsers ? 'Install (silent, all users)' : 'Install (silent)', cmd: `msiexec /i "${msi}"${allUsers} /qn /norestart` },
         { label: 'Repair (silent)',         cmd: byCode('/f') },
         { label: 'Uninstall (silent)',      cmd: byCode('/x') },
-        { label: 'Admin install (extract)', cmd: `msiexec /a "${msi}" TARGETDIR="C:\\Path" /qn` },
+        // "Admin install" read as "install as admin" to a real user (2026-10-20): it only unpacks files, so say so.
+        { label: 'Admin install (extract only - does not install)', cmd: `msiexec /a "${msi}" TARGETDIR="C:\\Path" /qn` },
       ],
       modifiers:
         '/qn (no UI) · /qb (basic UI) · /norestart · /l*v "C:\\out.log" (verbose log) · ' +
-        'PROP=VALUE public properties (e.g. INSTALLDIR="C:\\Apps")',
+        `PROP=VALUE public properties (e.g. ${dirProp}="C:\\Apps")`,
       confidence: 'high',
       notes:
+        (allUsers
+          ? 'Dual-purpose package that defaults to per-user (ALLUSERS=2 with MSIINSTALLPERUSER=1): without ALLUSERS=1 it installs for one user ' +
+            'only, and run as SYSTEM, the way deployment tools run it, it can fail outright (Arduino IDE 2.3.10 exited ' +
+            '1603 in the lab). ALLUSERS=1 makes it a machine-wide install into Program Files for every user. '
+          : '') +
+        (analysis?.installDirProperty && analysis.installDirProperty !== 'INSTALLDIR'
+          ? `The install folder is set with ${analysis.installDirProperty}="C:\\Apps\\..." - INSTALLDIR is ignored by this package. `
+          : '') +
         'MSI silent install is ALWAYS /qn - no guessing. /a is an administrative install (unpacks the ' +
         'payload to a network point - the MSI equivalent of a layout). Repair flags can be tuned ' +
         '(/fa reinstalls all files, /fvomus forces a full repair). (.msp patches install with /p; ' +

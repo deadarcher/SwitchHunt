@@ -4,7 +4,7 @@ Hand-verified silent-install strings for apps whose switches you can't derive fr
 custom CLIs, mandatory keys, compressed payloads. `{file}` is replaced with the dropped installer name at
 runtime. For well-known apps the catalog also carries the real uninstall command and a file-detection path.
 
-**124 entries.** Generated from `src/lib/catalog.ts` - do not hand-edit; run `npm run gen:catalog`.
+**125 entries.** Generated from `src/lib/catalog.ts` - do not hand-edit; run `npm run gen:catalog`.
 
 Got one we miss? [Submit it with the issue form](https://github.com/deadarcher/SwitchHunt/issues/new?template=silent-install-string.yml) (no coding needed) - or PR `src/lib/catalog.ts` ([CONTRIBUTING](CONTRIBUTING.md)).
 
@@ -134,3 +134,4 @@ Got one we miss? [Submit it with the issue form](https://github.com/deadarcher/S
 | Royal TS | `msiexec /i "{file}" /qn /norestart` | `msiexec /x "{file}" /qn /norestart` | - | 2026-10-20 (v7.4.50922.0, + uninstall) | A plain machine-wide MSI with no required properties. It registers as "Royal TS V7" and is about 260 MB, so stage it close to the endpoints. |
 | Beyond Compare 5 | `{file} /VERYSILENT /SUPPRESSMSGBOXES /NORESTART /ALLUSERS` | `"%ProgramFiles%\Beyond Compare 5\unins000.exe" /VERYSILENT /SUPPRESSMSGBOXES /NORESTART` | - | 2026-10-20 (v5.2.6.32774, + uninstall) | Inno Setup, and /ALLUSERS is required: without it the setup sat for more than eight minutes as SYSTEM and had to be killed; with it the install finished in seconds and registered as "Beyond Compare 5 (All users)". The licence key is entered separately. |
 | TechSmith Camtasia | `msiexec /i "{file}" /qn /norestart` | `msiexec /x "{file}" /qn /norestart` | - | 2026-10-20 (v26.2.2.19936, + uninstall) | Deploy the Visual C++ 2015-2022 x64 runtime first: Camtasia 26.2 refuses to install unless it is 14.51.36231 or newer, and a silent install reports that only as exit 1603. Its MSI log says "Camtasia requires Microsoft Visual C++ 2019 Redistributable package v14.51.36231 or later". With a current runtime the same command installed and uninstalled cleanly. |
+| Arduino IDE | `msiexec /i "{file}" ALLUSERS=1 /qn /norestart` | `msiexec /x "{file}" /qn /norestart` | - | 2026-10-20 (v2.3.10, + uninstall) | A dual-purpose MSI (ALLUSERS=2, MSIINSTALLPERUSER=1) that defaults to a per-user install. Run as SYSTEM without ALLUSERS=1 it exited 1603 and installed nothing; with it, it installed into Program Files for every user. To change the folder use APPLICATIONFOLDER="C:\Apps\ArduinoIDE"; INSTALLDIR is ignored by this package. Admin install (/a) only unpacks files, it does not install. |
