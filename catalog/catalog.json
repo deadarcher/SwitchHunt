@@ -1,6 +1,6 @@
 {
   "_comment": "GENERATED from src/lib/catalog.ts by scripts/gen-catalog.ts - do not hand-edit. Regenerate: npm run gen:catalog",
-  "count": 103,
+  "count": 114,
   "entries": [
     {
       "name": "Citrix Workspace",
@@ -913,7 +913,7 @@
     {
       "name": "Microsoft Visual C++ 2015-2022 Redistributable (x64)",
       "match": {
-        "product": "visual c\\+\\+ 2015-2022 redistributable \\(x64\\)",
+        "product": "visual c\\+\\+ (2015-2022|v14) redistributable \\(x64\\)",
         "file": "vc_redist\\.x64\\.exe"
       },
       "install": "{file} /install /quiet /norestart",
@@ -1529,6 +1529,182 @@
       "verified": {
         "on": "2026-10-18",
         "version": "1.46.0",
+        "uninstall": true
+      }
+    },
+    {
+      "name": "Microsoft Access Database Engine 2016 Redistributable (x64)",
+      "match": {
+        "product": "^microsoft access database engine 2016",
+        "file": "accessdatabaseengine_x64\\.exe"
+      },
+      "install": "{file} /quiet /norestart",
+      "uninstall": "msiexec /x {90160000-00D1-0409-1000-0000000FF1CE} /qn /norestart",
+      "detect": null,
+      "note": "The ACE OLE DB and ODBC drivers that Excel and Access imports need on machines without Office. Microsoft's installer refuses to put the x64 engine next to 32-bit Office (and the x86 one next to 64-bit Office), so match the bitness of any Office already installed. It is removed by product code; the one shown is the English x64 package.",
+      "verified": {
+        "on": "2026-10-19",
+        "version": "16.0.5044.1000",
+        "uninstall": true
+      }
+    },
+    {
+      "name": "Microsoft OLE DB Driver 19 for SQL Server",
+      "match": {
+        "product": "^microsoft ole db driver 19",
+        "file": "msoledbsql.*\\.msi"
+      },
+      "install": "msiexec /i \"{file}\" /qn /norestart IACCEPTMSOLEDBSQLLICENSETERMS=YES",
+      "uninstall": "msiexec /x \"{file}\" /qn /norestart",
+      "detect": null,
+      "note": "IACCEPTMSOLEDBSQLLICENSETERMS=YES is required for a silent install. Version 19 installs side by side with 18 under a new provider name (MSOLEDBSQL19), so connection strings must be changed to use it, and like ODBC Driver 18 it encrypts connections by default.",
+      "verified": {
+        "on": "2026-10-19",
+        "version": "19.4.3.0",
+        "uninstall": true
+      }
+    },
+    {
+      "name": "Microsoft .NET 8 Hosting Bundle",
+      "match": {
+        "product": "^microsoft \\.net 8[0-9.]* - windows server hosting",
+        "file": "dotnet-hosting-8.*-win\\.exe"
+      },
+      "install": "{file} /install /quiet /norestart",
+      "uninstall": "{file} /uninstall /quiet /norestart",
+      "detect": null,
+      "note": "The .NET and ASP.NET Core runtimes plus the ASP.NET Core Module for IIS, for servers that host .NET web apps. Install IIS first: if IIS is added later, run the bundle again with /repair so the module registers. OPT_NO_X86=1 skips the 32-bit runtimes.",
+      "verified": {
+        "on": "2026-10-19",
+        "version": "8.0.32",
+        "uninstall": true
+      }
+    },
+    {
+      "name": "Microsoft Visual C++ 2008 Redistributable (x64)",
+      "match": {
+        "product": "visual c\\+\\+ 2008 redistributable - x64",
+        "file": "vcredist(2008)?_x64\\.exe"
+      },
+      "install": "{file} /q",
+      "uninstall": "msiexec /x {5FCE6D76-F5DC-37AB-B2B8-22AB8CEDB1D4} /qn /norestart",
+      "detect": null,
+      "note": "2008 SP1 with the MFC security update (9.0.30729.6161), the one old line-of-business apps still ask for. The package takes /q only (/install /quiet came with later years) and is removed by its MSI product code, shown for this version.",
+      "verified": {
+        "on": "2026-10-19",
+        "version": "9.0.30729.6161",
+        "uninstall": true
+      }
+    },
+    {
+      "name": "Microsoft Visual C++ 2008 Redistributable (x86)",
+      "match": {
+        "product": "visual c\\+\\+ 2008 redistributable - x86",
+        "file": "vcredist(2008)?_x86\\.exe"
+      },
+      "install": "{file} /q",
+      "uninstall": "msiexec /x {9BE518E6-ECC6-35A9-88E4-87755C07200F} /qn /norestart",
+      "detect": null,
+      "note": "Same /q switch as the x64 package. 32-bit apps need this one even on 64-bit Windows, so many machines carry both. Removed by product code, shown for 9.0.30729.6161.",
+      "verified": {
+        "on": "2026-10-19",
+        "version": "9.0.30729.6161",
+        "uninstall": true
+      }
+    },
+    {
+      "name": "TightVNC",
+      "match": {
+        "product": "^tightvnc",
+        "file": "tightvnc-.*-setup-64bit\\.msi"
+      },
+      "install": "msiexec /i \"{file}\" /qn /norestart SET_USEVNCAUTHENTICATION=1 VALUE_OF_USEVNCAUTHENTICATION=1 SET_PASSWORD=1 VALUE_OF_PASSWORD=ChangeMe1",
+      "uninstall": "msiexec /x \"{file}\" /qn /norestart",
+      "detect": null,
+      "note": "The full install puts a VNC server on the machine, so set the password properties in the same command (the lab run did) or install only the viewer with ADDLOCAL=Viewer. VNC passwords are capped at 8 characters, so also limit port 5900 to admin networks.",
+      "verified": {
+        "on": "2026-10-19",
+        "version": "2.8.89",
+        "uninstall": true
+      }
+    },
+    {
+      "name": "TortoiseGit",
+      "match": {
+        "product": "^tortoisegit",
+        "file": "TortoiseGit-.*-64bit\\.msi"
+      },
+      "install": "msiexec /i \"{file}\" /qn /norestart",
+      "uninstall": "msiexec /x \"{file}\" /qn /norestart",
+      "detect": null,
+      "note": "Installs cleanly without Git for Windows, but it does nothing useful until Git is there, so deploy Git first.",
+      "verified": {
+        "on": "2026-10-19",
+        "version": "2.19.1.0",
+        "uninstall": true
+      }
+    },
+    {
+      "name": "R for Windows",
+      "match": {
+        "product": "^r for windows",
+        "file": "R-[\\d.]+-win\\.exe"
+      },
+      "install": "{file} /VERYSILENT /SUPPRESSMSGBOXES /NORESTART /ALLUSERS",
+      "uninstall": "\"%ProgramFiles%\\R\\R-4.6.1\\unins000.exe\" /VERYSILENT /SUPPRESSMSGBOXES /NORESTART",
+      "detect": null,
+      "note": "Inno Setup. /ALLUSERS puts it in Program Files for everyone. Each R version installs into its own R-x.y.z folder and leaves earlier versions in place, so the uninstall path changes with every release. RStudio Desktop is a separate install that failed as SYSTEM in the lab (exit 666660 from its elevation plugin), so it is not listed.",
+      "verified": {
+        "on": "2026-10-19",
+        "version": "4.6.1",
+        "uninstall": true
+      }
+    },
+    {
+      "name": "Advanced IP Scanner",
+      "match": {
+        "product": "^advanced ip scanner",
+        "file": "Advanced_IP_Scanner_.*\\.exe"
+      },
+      "install": "{file} /SP- /VERYSILENT /SUPPRESSMSGBOXES /NORESTART",
+      "uninstall": "msiexec /x {C8511AEB-814C-4D6F-AA45-44035EAD563B} /qn /norestart",
+      "detect": null,
+      "note": "The EXE is an Inno wrapper around an MSI, so it installs with Inno switches but must be removed with msiexec: its registered uninstall is MsiExec /X{code}, which sat on an invisible dialog as SYSTEM when given /VERYSILENT. The install also starts the app afterwards (in the lab it ran as SYSTEM), so end advanced_ip_scanner.exe after a deploy. Product code shown is for 2.5.4594.1.",
+      "verified": {
+        "on": "2026-10-19",
+        "version": "2.5.4594.1",
+        "uninstall": true
+      }
+    },
+    {
+      "name": "HWiNFO64",
+      "match": {
+        "product": "^hwinfo",
+        "file": "hwi64_.*\\.exe"
+      },
+      "install": "{file} /VERYSILENT /SUPPRESSMSGBOXES /NORESTART",
+      "uninstall": "\"%ProgramFiles%\\HWiNFO64\\unins001.exe\" /VERYSILENT /SUPPRESSMSGBOXES /NORESTART",
+      "detect": null,
+      "note": "Inno Setup. Its uninstaller is unins001.exe, not the usual unins000.exe, so read the path from Add/Remove Programs rather than guessing it.",
+      "verified": {
+        "on": "2026-10-19",
+        "version": "8.54",
+        "uninstall": true
+      }
+    },
+    {
+      "name": "CPU-Z",
+      "match": {
+        "product": "cpu-z",
+        "file": "cpu-z_.*\\.exe"
+      },
+      "install": "{file} /VERYSILENT /SUPPRESSMSGBOXES /NORESTART",
+      "uninstall": "\"%ProgramFiles%\\CPUID\\CPU-Z\\unins000.exe\" /VERYSILENT /SUPPRESSMSGBOXES /NORESTART",
+      "detect": null,
+      "note": "Inno Setup, installed machine-wide under Program Files\\CPUID. Use the installer (cpu-z_x.xx-en.exe), not the zip, if you want it in Add/Remove Programs.",
+      "verified": {
+        "on": "2026-10-19",
+        "version": "3.01",
         "uninstall": true
       }
     }
