@@ -1604,18 +1604,18 @@ const description =
       `<div class="burn-chain"><div class="lbl">Wraps ${a.chain.length} package${a.chain.length === 1 ? '' : 's'} - read from the bundle's own manifest, in your browser</div><ul>${chainList}</ul></div>`;
 
     if (a.silentRisk) {
-      // The bundle's own /quiet won't obey - hide the misleading bundle-level commands/builder/packager
-      // (CSS, reset in render()) and give the real path: extract the chain, run the inner installers.
-      result.classList.add('burn-silent-risk');
+      // A custom front-end MAY ignore /quiet - many honor it. This used to declare "/quiet won't work" and hide the
+      // bundle's own commands; a user's Blackmagic SmartView 5.0.4 (custom BA) installed silently with /quiet
+      // (2026-10-27). So: keep the commands, say test /quiet first, and offer the chain extract as the fallback.
       const fname = lastFile ? lastFile.name : 'Installer.exe';
       const steps = a.chain.map((p) =>
         p.kind === 'MSI' ? `msiexec /i "${p.name}" /qn /norestart`
         : p.kind === 'EXE' ? `.\\${p.name} ${(p.installArgs || '/quiet /norestart')}`.trim()
         : `REM install ${p.name} silently`).join('\n');
       const banner =
-        `<div class="burn-warn"><strong>Custom bootstrapper${a.baName ? ` (${escH(a.baName)})` : ''} - <code>/quiet</code> won't work here.</strong> This bundle's front-end isn't the standard WiX one, so it ignores the silent flag and pops a wizard - a defect no switch fixes. The bundle-level commands are hidden because they'd install interactively. Do this instead:</div>`;
+        `<div class="burn-warn"><strong>Custom bootstrapper${a.baName ? ` (${escH(a.baName)})` : ''} - <code>/quiet</code> may not work - test it first.</strong> This bundle's front-end isn't the standard WiX one. Many custom front-ends honor <code>/quiet</code>, but some ignore it and show a wizard anyway, which no switch fixes. Try the silent command above on a test machine. If a wizard appears, install the packages inside it instead:</div>`;
       const recipe =
-        `<div class="burn-recipe"><div class="lbl">Silent install - extract the chain first</div><ol>` +
+        `<div class="burn-recipe"><div class="lbl">If /quiet shows a wizard - extract the chain</div><ol>` +
         `<li>Grab the extractor (built-in Windows tools only, nothing leaves your machine):` +
         `<div class="burn-dl-row">` +
         `<a class="burn-dl-btn primary" href="/Extract-BurnBundle.ps1" download>Download Extract-BurnBundle.ps1</a>` +
