@@ -28,9 +28,10 @@
  * fork. It forked once already (2026-09-03: three copies, three behaviours - see SELF_FILES
  * below for what that cost). Sync it like any other shared file.
  *
- * NOT CHECKED: catalog.ts. It legitimately diverges - the marketing copy carries catalogSlug()
- * for its /switchhunt/<slug> routes and the public copy has no such pages. Entry parity there is
- * a different question; compare CATALOG.md counts instead.
+ * catalog.ts IS checked (group `catalog`, 2026-11-10). It used to diverge on purpose (the marketing
+ * copy carried catalogSlug() for its /switchhunt/<slug> routes), so it was skipped, and it drifted
+ * anyway. When RFF's deploy wizard took a third copy, catalogSlug moved to the marketing site's own
+ * catalogSlug.ts and the three copies became byte-identical, so the check needs no exception.
  */
 import { readFileSync, existsSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
@@ -62,6 +63,11 @@ const GROUPS = {
   // RFF's deploy wizard (2026-08-25): the SwitchHunt panel needs only the detector + MSI parser,
   // not burn/intunewin/psadt - the wizard suggests switches, it never repackages.
   wizard:    ['msi.ts', 'installerDetect.ts'],
+  // The curated silent-switch catalog (2026-11-10): the public tool, the hosted page and RFF's deploy wizard,
+  // which falls back to it when the engine finds no switch (a Dropbox offline installer reads as a plain
+  // 7-Zip archive; only the catalog knows /S). Its own group so intune-detection, which shares `wizard`
+  // but has no catalog, is not reported as missing it.
+  catalog:   ['catalog.ts'],
   // VBScript to PowerShell (2026-09-22). One file, but the most-edited engine of the lot: it is
   // refined against a private measurement corpus, so every fix lands HERE first and the public
   // repo only ever receives copies. That is exactly the one-way flow that drifts unnoticed.
@@ -79,18 +85,18 @@ const GROUPS = {
  */
 const ALL_TOOLS = ['perf', 'drift', 'baseline', 'collector', 'procmon', 'vbs', 'detection'];
 const CANDIDATES = [
-  { path: resolve(repoRoot, '..', 'rff-marketing'), groups: ['installer', ...ALL_TOOLS] },
-  { path: 'C:/temp/rff-marketing',                  groups: ['installer', ...ALL_TOOLS] },
-  { path: resolve(repoRoot, '..', 'SwitchHunt'),    groups: ['installer'] },
-  { path: 'C:/Temp/SwitchHunt',                     groups: ['installer'] },
+  { path: resolve(repoRoot, '..', 'rff-marketing'), groups: ['installer', 'catalog', ...ALL_TOOLS] },
+  { path: 'C:/temp/rff-marketing',                  groups: ['installer', 'catalog', ...ALL_TOOLS] },
+  { path: resolve(repoRoot, '..', 'SwitchHunt'),    groups: ['installer', 'catalog'] },
+  { path: 'C:/Temp/SwitchHunt',                     groups: ['installer', 'catalog'] },
   // The RFF product repo nests its web app inside the platform monorepo (the {path, lib} case
   // the comment above was written for). Private repo, so only local runs ever see it.
-  { path: resolve(repoRoot, '..', 'rff'),           lib: 'platform/src/RFF.Web/src/lib', groups: ['wizard'] },
-  { path: 'C:/temp/rff',                            lib: 'platform/src/RFF.Web/src/lib', groups: ['wizard'] },
+  { path: resolve(repoRoot, '..', 'rff'),           lib: 'platform/src/RFF.Web/src/lib', groups: ['wizard', 'catalog'] },
+  { path: 'C:/temp/rff',                            lib: 'platform/src/RFF.Web/src/lib', groups: ['wizard', 'catalog'] },
   // RFF.Web running this script sees the monorepo from the INSIDE: its own repoRoot is the
   // RFF.Web project, so the siblings above are reached by climbing out of platform/src.
-  { path: resolve(repoRoot, '..', '..', '..', '..', 'SwitchHunt'),    groups: ['installer'] },
-  { path: resolve(repoRoot, '..', '..', '..', '..', 'rff-marketing'), groups: ['installer', ...ALL_TOOLS] },
+  { path: resolve(repoRoot, '..', '..', '..', '..', 'SwitchHunt'),    groups: ['installer', 'catalog'] },
+  { path: resolve(repoRoot, '..', '..', '..', '..', 'rff-marketing'), groups: ['installer', 'catalog', ...ALL_TOOLS] },
   // One public repo per tool; each carries only the modules its own page imports.
   { path: resolve(repoRoot, '..', 'culprit'),       groups: ['perf', 'collector'] },
   { path: 'C:/temp/culprit',                        groups: ['perf', 'collector'] },
