@@ -470,6 +470,20 @@ export const CATALOG: CatalogEntry[] = [
   { name: 'Arduino IDE', match: { product: /^arduino ide/i, file: /arduino-ide_.*_Windows_64bit\.msi/i }, install: 'msiexec /i "{file}" ALLUSERS=1 /qn /norestart', uninstall: 'msiexec /x "{file}" /qn /norestart', verified: { on: '2026-10-20', version: '2.3.10', uninstall: true }, note: 'A dual-purpose MSI (ALLUSERS=2, MSIINSTALLPERUSER=1) that defaults to a per-user install. Run as SYSTEM without ALLUSERS=1 it exited 1603 and installed nothing; with it, it installed into Program Files for every user. To change the folder use APPLICATIONFOLDER="C:\\Apps\\ArduinoIDE"; INSTALLDIR is ignored by this package. Admin install (/a) only unpacks files, it does not install.' },
 ];
 
+/**
+ * Put the dropped file's name into a catalog command. Most entries write a bare {file} (it is the
+ * program), so a name with spaces broke the line: Dropbox's own download is
+ * "Dropbox 278.4.4020 Offline Installer.x64.exe", and the shown "Dropbox 278... /S" failed in CMD and
+ * PowerShell (tested 2026-11-10). Quote a bare {file} when the name has whitespace; leave "{file}" alone.
+ * The page's CMD note covers the other trap from that day's feedback: start "file.exe" /s answers
+ * Invalid switch, because start takes the quoted name as the window title. Every page that
+ * renders a catalog command goes through here, so the copy, the PSADT script and Intune agree.
+ */
+export function fillCatalogCmd(cmd: string, fileName: string): string {
+  const q = /\s/.test(fileName) ? `"${fileName}"` : fileName;
+  return cmd.split('"{file}"').map(part => part.split('{file}').join(q)).join(`"${fileName}"`);
+}
+
 /** First catalog entry whose product/filename match the detected metadata, or null. */
 export function lookupCatalog(opts: { product?: string; fileName?: string }): CatalogEntry | null {
   const p = (opts.product ?? '').trim();

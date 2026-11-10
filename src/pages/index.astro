@@ -87,6 +87,14 @@ const description =
         after the program name so PowerShell passes the rest verbatim.
       </p>
 
+      {/* CMD users reach for start, and start takes the FIRST quoted argument as the window title, so
+          start "setup.exe" /S hands /S to start itself ("invalid switch"). Feedback 2026-11-10 (Dropbox). */}
+      <p class="shell-hint" id="r-cmd-start" hidden>
+        In a batch file, run the line as shown (or put <code>call</code> in front). If you use
+        <code>start</code>, give it an empty title first, or it takes the quoted file name as the
+        title: <code>start "" /wait "setup.exe" /S</code>
+      </p>
+
       <!-- POSITION IS THE POINT. These two sit directly under the commands they qualify and ABOVE
            the builder, the deploy artifacts and the notes. Originally they were next to the notes at
            the very bottom of the card, below the .intunewin builder - by then the reader has already
@@ -628,7 +636,7 @@ const description =
   import type { DetectionResult } from '../lib/installerDetect';
   import { analyzeBurn, type BurnAnalysis } from '../lib/burn';
   import type { MsiAnalysis } from '../lib/msi';
-  import { lookupCatalog } from '../lib/catalog';
+  import { lookupCatalog, fillCatalogCmd } from '../lib/catalog';
   import { generatePsadt, psadtCommands, detectionRule, defaultDetectionKind,
            type PsadtInput, type PsadtOptions, type DetectionKind } from '../lib/psadt';
   import { buildIntuneWin } from '../lib/intunewin';
@@ -667,6 +675,8 @@ const description =
     // for every variable name including parenthesised ones, so it is used unconditionally.
     // Verified on hardware 2026-08-27 (brianhp3): argv then matches the CMD form byte for byte.
     const s = cmd.replace(/%([A-Za-z_][A-Za-z0-9_()]*)%/g, '${env:$1}');
+    // A quoted name with no folder is a current-folder exe (a file name with spaces): PowerShell still needs .\ inside the quotes.
+    if (/^"[^"\\/]+\.exe"/i.test(s)) return '& ".\\' + s.slice(1);
     if (s.startsWith('"')) return '& ' + s;                 // quoted path → call operator
     const head = s.split(/\s/, 1)[0];
     const onPath = /^(msiexec|sc|net|reg|wusa|rundll32|dism|powershell|pwsh|cmd)(\.exe)?$/i.test(head);
@@ -1358,8 +1368,8 @@ const description =
       sub.className = 'catalog-sub';
       sub.textContent = 'A hand-verified silent string for this app - a hard-coded known value, NOT read from your file.';
       catEl.append(head, sub);
-      catEl.append(makeCmdBlock('Install (silent)', cat.install.replaceAll('{file}', fn)));
-      if (cat.uninstall) catEl.append(makeCmdBlock('Uninstall (silent)', cat.uninstall.replaceAll('{file}', fn)));
+      catEl.append(makeCmdBlock('Install (silent)', fillCatalogCmd(cat.install, fn)));
+      if (cat.uninstall) catEl.append(makeCmdBlock('Uninstall (silent)', fillCatalogCmd(cat.uninstall, fn)));
       if (cat.note) {
         const n = document.createElement('p');
         n.className = 'notes';
@@ -1432,7 +1442,7 @@ const description =
     const cmdFn = r.fileName || 'installer.exe';
     for (const c of r.commands) {
       const cmd = showCat && cat?.uninstall && /uninstall/i.test(c.label)
-        ? cat.uninstall.replaceAll('{file}', cmdFn)
+        ? fillCatalogCmd(cat.uninstall, cmdFn)
         : c.cmd;
       cmds.append(makeCmdBlock(c.label, cmd));
     }
@@ -1447,22 +1457,26 @@ const description =
     // text (msiexec -> unchanged, setup.exe -> gains .\), not on the installer type.
     const rewritten = r.commands.some(c => {
       const cmd = showCat && cat?.uninstall && /uninstall/i.test(c.label)
-        ? cat.uninstall.replaceAll('{file}', cmdFn)
+        ? fillCatalogCmd(cat.uninstall, cmdFn)
         : c.cmd;
       return shellify(cmd) !== cmd;
-    });
+    }) || (showCat && !!cat && [cat.install, cat.uninstall ?? ''].some(t => {
+      const cmd = fillCatalogCmd(t, cmdFn);
+      return !!cmd && shellify(cmd) !== cmd;
+    }));
     const pwshOn = shell === 'pwsh' && shellable;
     $('r-shell-hint').hidden = !(pwshOn && rewritten);
     $('r-shell-same').hidden = !(pwshOn && !rewritten);
+    $('r-cmd-start').hidden = !(shell === 'cmd' && shellable);
 
     // Deployment artifacts (PSADT v4 + Intune) - uses the catalog command if shown, else detection.
     const deployEl = $('r-deploy');
     if (shellable) {
       deployEl.hidden = false;
       const dfn = r.fileName || 'installer.exe';
-      const instCmd = showCat && cat ? cat.install.replaceAll('{file}', dfn) : (r.commands[0]?.cmd ?? '');
+      const instCmd = showCat && cat ? fillCatalogCmd(cat.install, dfn) : (r.commands[0]?.cmd ?? '');
       const unCmd = showCat && cat?.uninstall
-        ? cat.uninstall.replaceAll('{file}', dfn)
+        ? fillCatalogCmd(cat.uninstall, dfn)
         : (r.commands.find((c) => /uninstall/i.test(c.label))?.cmd ?? '');
       const catDetect = showCat && cat?.detect ? cat.detect : undefined;
       renderDeploy(psadtInputFrom(r, dfn, instCmd, unCmd), instCmd, unCmd, catDetect);
