@@ -1,6 +1,6 @@
 {
   "_comment": "GENERATED from src/lib/catalog.ts by scripts/gen-catalog.ts - do not hand-edit. Regenerate: npm run gen:catalog",
-  "count": 125,
+  "count": 137,
   "entries": [
     {
       "name": "Citrix Workspace",
@@ -11,8 +11,12 @@
       "install": "{file} /silent /noreboot",
       "uninstall": "{file} /silent /uninstall",
       "detect": null,
-      "note": "Self-extracting; the switches live in the inner bootstrapper. Add /includeSSON for pass-through SSO, and ADDLOCAL=\"ReceiverInside,ICA_Client,USB,DesktopViewer,WebHelper\" to pick components.",
-      "verified": null
+      "note": "Self-extracting; the switches live in the inner bootstrapper. Add /includeSSON for pass-through SSO, and ADDLOCAL=\"ReceiverInside,ICA_Client,USB,DesktopViewer,WebHelper\" to pick components. Slow: about 11 minutes as SYSTEM in the lab (2610), so raise a 5-minute deployment timeout. It also installs two OTHER products with their own Add/Remove Programs entries, \"Zoom VDI Plugin Management (64bit)\" and \"Microsoft Teams VDI Citrix plugin\", and the Citrix uninstall leaves both behind (the Zoom one keeps a service running). Remove them with msiexec /x and their product codes from Add/Remove Programs.",
+      "verified": {
+        "on": "2026-11-11",
+        "version": "26.10.0.31",
+        "uninstall": true
+      }
     },
     {
       "name": "Microsoft Teams (new, machine-wide)",
@@ -51,8 +55,12 @@
       "install": "{file} --install \"C:\\Program Files (x86)\\AnyDesk\" --start-with-win --create-shortcuts --silent",
       "uninstall": "\"C:\\Program Files (x86)\\AnyDesk\\AnyDesk.exe\" --remove --silent",
       "detect": null,
-      "note": "Custom CLI (not MSI-style). --install REQUIRES the target folder as an argument.",
-      "verified": null
+      "note": "Custom CLI (not MSI-style). --install REQUIRES the target folder as an argument. Silent removal is --remove --silent (Add/Remove Programs registers plain --uninstall).",
+      "verified": {
+        "on": "2026-11-11",
+        "version": "9.8.3",
+        "uninstall": true
+      }
     },
     {
       "name": "Docker Desktop",
@@ -73,10 +81,14 @@
         "file": "AcroRdr|Reader.*DC|AcroRead"
       },
       "install": "{file} /sAll /rs /msi EULA_ACCEPT=YES",
-      "uninstall": null,
+      "uninstall": "msiexec /x {AC76BA86-1033-FF00-7760-BC15014EA700} /qn /norestart",
       "detect": null,
-      "note": "/sAll silent, /rs suppress reboot, /msi forwards the rest to the inner MSI. EULA_ACCEPT=YES is mandatory.",
-      "verified": null
+      "note": "/sAll silent, /rs suppress reboot, /msi forwards the rest to the inner MSI. EULA_ACCEPT=YES is mandatory. The 64-bit Reader is Adobe's unified installer, so it shows in Add/Remove Programs as \"Adobe Acrobat (64-bit)\", not Reader; the uninstall uses that entry's product code. It took about 7 minutes as SYSTEM in the lab, so raise a 5-minute deployment timeout.",
+      "verified": {
+        "on": "2026-11-11",
+        "version": "26.003.22075",
+        "uninstall": true
+      }
     },
     {
       "name": "CrowdStrike Falcon Sensor",
@@ -159,10 +171,14 @@
         "file": "Zoom.*\\.msi|ZoomInstallerFull"
       },
       "install": "msiexec /i \"{file}\" /qn ZoomAutoUpdate=\"true\"",
-      "uninstall": null,
+      "uninstall": "msiexec /x \"{file}\" /qn /norestart",
       "detect": null,
-      "note": "Use the MSI (not the per-user exe) for fleet deploys; pass ZConfig/ZoomAutoUpdate properties for config.",
-      "verified": null
+      "note": "Use the MSI (not the per-user exe) for fleet deploys. It registers as \"Zoom Workplace (64-bit)\". The uninstall by file only matches that same version; once Zoom has updated itself, remove it by the product code in Add/Remove Programs. Zoom's options are passed straight to its own installer code, so the MSI declares no defaults for them; the ones below are from Zoom's MSI deployment docs. Names are case-insensitive on the command line (msiexec uppercases them).",
+      "verified": {
+        "on": "2026-11-11",
+        "version": "7.2.51704",
+        "uninstall": true
+      }
     },
     {
       "name": "Oracle VM VirtualBox",
@@ -171,22 +187,30 @@
         "file": "VirtualBox.*Win"
       },
       "install": "{file} --silent --ignore-reboot",
-      "uninstall": null,
+      "uninstall": "msiexec /x {D726D65F-25B7-436D-85D5-41310BA0E8EA} /qn /norestart",
       "detect": null,
-      "note": "Qt-based custom installer. --silent + --ignore-reboot; the network-driver install can still prompt unless the Oracle cert is pre-trusted in the cert store.",
-      "verified": null
+      "note": "Custom wrapper around an MSI. --silent + --ignore-reboot; it registers as \"Oracle VirtualBox\" with an MSI product code, so remove it with msiexec /x (product code shown is for 7.2.22; it changes per version). On a clean Windows 11 VM as SYSTEM it finished in under a minute with no prompt. Older guides say the network-driver install can prompt unless Oracle's certificate is pre-trusted; that wasn't needed here.",
+      "verified": {
+        "on": "2026-11-11",
+        "version": "7.2.22",
+        "uninstall": true
+      }
     },
     {
       "name": "Wireshark",
       "match": {
         "product": "wireshark",
-        "file": "Wireshark.*win"
+        "file": "Wireshark.*(win|x64|arm64).*\\.exe"
       },
       "install": "{file} /S /desktopicon=yes",
-      "uninstall": null,
+      "uninstall": "\"%ProgramFiles%\\Wireshark\\uninstall-wireshark.exe\" /S",
       "detect": null,
-      "note": "NSIS. Bundles Npcap, which runs its own installer - add /quiet and let it through.",
-      "verified": null
+      "note": "NSIS. A silent install does NOT install Npcap (lab, 4.6.9 as SYSTEM: no Npcap afterwards), so Wireshark opens but can't capture until Npcap is installed. Npcap's free edition has no silent install; silent deployment needs the Npcap OEM edition.",
+      "verified": {
+        "on": "2026-11-11",
+        "version": "4.6.9",
+        "uninstall": true
+      }
     },
     {
       "name": "TeamViewer (Host)",
@@ -239,8 +263,8 @@
     {
       "name": "Foxit PDF Editor",
       "match": {
-        "product": "foxit",
-        "file": "Foxit.*(Setup|Editor)|FoxitPDFEditor"
+        "product": "foxit (pdf )?editor|phantompdf",
+        "file": "Foxit.*Editor|PhantomPDF"
       },
       "install": "msiexec /i \"{file}\" /qn /norestart KEYCODE=<your-volume-key>",
       "uninstall": null,
@@ -315,10 +339,14 @@
         "file": "googlechrome.*enterprise|chrome.*enterprise"
       },
       "install": "msiexec /i \"{file}\" /qn /norestart",
-      "uninstall": null,
+      "uninstall": "msiexec /x \"{file}\" /qn /norestart",
       "detect": null,
-      "note": "Use the Enterprise MSI, not the consumer stub exe, for fleet deploys.",
-      "verified": null
+      "note": "Use the Enterprise MSI, not the consumer stub exe, for fleet deploys. Chrome updates itself and its product code changes with every version, so the uninstall by file only matches the build you installed; after an update, use the code in Add/Remove Programs. Its custom actions take only Google's own updater plumbing (TAGSTRING replaces the whole install tag; UNINSTALLCMDLINE/UNINSTALLCMDARGS drive removal), nothing to configure Chrome with: that is done by policy after install (the ADMX templates via GPO or Intune, or HKLM\\SOFTWARE\\Policies\\Google\\Chrome).",
+      "verified": {
+        "on": "2026-11-11",
+        "version": "157.0.8103.51",
+        "uninstall": true
+      }
     },
     {
       "name": "Mozilla Firefox",
@@ -346,7 +374,11 @@
       "uninstall": "\"%ProgramFiles%\\7-Zip\\Uninstall.exe\" /S",
       "detect": "C:\\Program Files\\7-Zip\\7zFM.exe",
       "note": null,
-      "verified": null
+      "verified": {
+        "on": "2026-11-11",
+        "version": "26.06",
+        "uninstall": true
+      }
     },
     {
       "name": "Notepad++",
@@ -358,7 +390,11 @@
       "uninstall": "\"%ProgramFiles%\\Notepad++\\uninstall.exe\" /S",
       "detect": "C:\\Program Files\\Notepad++\\notepad++.exe",
       "note": "NSIS. /allusers installs machine-wide (HKLM, Program Files); drop it for a per-user install.",
-      "verified": null
+      "verified": {
+        "on": "2026-11-11",
+        "version": "8.9.9",
+        "uninstall": true
+      }
     },
     {
       "name": "VLC media player",
@@ -370,7 +406,11 @@
       "uninstall": "\"%ProgramFiles%\\VideoLAN\\VLC\\uninstall.exe\" /S",
       "detect": "C:\\Program Files\\VideoLAN\\VLC\\vlc.exe",
       "note": null,
-      "verified": null
+      "verified": {
+        "on": "2026-11-11",
+        "version": "3.0.24",
+        "uninstall": true
+      }
     },
     {
       "name": "WinRAR",
@@ -456,7 +496,11 @@
       "uninstall": "msiexec /x \"{file}\" /quiet /norestart",
       "detect": null,
       "note": "MSI (the .exe on the download page is the program itself, not an installer - grab the 64-bit MSI).",
-      "verified": null
+      "verified": {
+        "on": "2026-11-11",
+        "version": "0.85",
+        "uninstall": true
+      }
     },
     {
       "name": "Audacity",
@@ -495,7 +539,11 @@
       "uninstall": "msiexec /x \"{file}\" /quiet CLEAN=\"1\"",
       "detect": null,
       "note": "Vendor docs use /quiet. CLEAN=\"1\" on uninstall also removes registry + user data. ADDLOCAL=\"FX_PDFVIEWER\" installs the viewer only.",
-      "verified": null
+      "verified": {
+        "on": "2026-11-11",
+        "version": "2026.2.1.39815",
+        "uninstall": true
+      }
     },
     {
       "name": "Sumatra PDF",
@@ -1881,6 +1929,198 @@
       "verified": {
         "on": "2026-10-20",
         "version": "2.3.10",
+        "uninstall": true
+      }
+    },
+    {
+      "name": "Microsoft Windows Desktop Runtime 10 (x64)",
+      "match": {
+        "product": "windows desktop runtime - 10\\.",
+        "file": "windowsdesktop-runtime-10.*-win-x64\\.exe"
+      },
+      "install": "{file} /install /quiet /norestart",
+      "uninstall": "{file} /uninstall /quiet /norestart",
+      "detect": null,
+      "note": "What WinForms / WPF apps built on .NET 10 need. Add/Remove Programs shows the runtime as \"Microsoft Windows Desktop Runtime - 10.0.15 (x64)\" but with DisplayVersion 80.60.61788, an internal number, so a detection rule should key on the name, not on version 10.0.15.",
+      "verified": {
+        "on": "2026-11-11",
+        "version": "10.0.15",
+        "uninstall": true
+      }
+    },
+    {
+      "name": "Microsoft .NET 10 Hosting Bundle",
+      "match": {
+        "product": "^microsoft \\.net 10[0-9.]* - windows server hosting",
+        "file": "dotnet-hosting-10.*-win\\.exe"
+      },
+      "install": "{file} /install /quiet /norestart",
+      "uninstall": "{file} /uninstall /quiet /norestart",
+      "detect": null,
+      "note": "The .NET 10 and ASP.NET Core 10 runtimes plus the ASP.NET Core Module for IIS. Install IIS first: if IIS is added later, run the bundle again with /repair so the module registers. OPT_NO_X86=1 skips the 32-bit runtimes.",
+      "verified": {
+        "on": "2026-11-11",
+        "version": "10.0.15",
+        "uninstall": true
+      }
+    },
+    {
+      "name": "Cloudflare One Client (WARP)",
+      "match": {
+        "product": "^cloudflare (one client|warp)",
+        "file": "Cloudflare_WARP.*\\.msi"
+      },
+      "install": "msiexec /i \"{file}\" /qn /norestart",
+      "uninstall": "msiexec /x \"{file}\" /qn /norestart",
+      "detect": null,
+      "note": "Renamed: the WARP client now registers as \"Cloudflare One Client\". Add ORGANIZATION (your Zero Trust team name) to register it with your organization; the lab run installed it without one. The settings below are MSI properties; Cloudflare documents the managed settings file as C:\\ProgramData\\Cloudflare\\mdm.xml. On a new deployment, SWITCH_LOCKED=true needs AUTO_CONNECT as well (0 or more), or clients can start switched off with no way for users to turn them on (Cloudflare's docs).",
+      "verified": {
+        "on": "2026-11-11",
+        "version": "26.8.2115.0",
+        "uninstall": true
+      }
+    },
+    {
+      "name": "OpenVPN Connect",
+      "match": {
+        "product": "^openvpn connect",
+        "file": "openvpn-connect-.*\\.msi"
+      },
+      "install": "msiexec /i \"{file}\" /qn /norestart",
+      "uninstall": "msiexec /x \"{file}\" /qn /norestart",
+      "detect": null,
+      "note": "OpenVPN Inc.'s client (Access Server / CloudConnexa), not the community OpenVPN GUI. The install folder is set with APPLICATIONROOTDIRECTORY; INSTALLDIR is ignored by this package.",
+      "verified": {
+        "on": "2026-11-11",
+        "version": "3.9.0",
+        "uninstall": true
+      }
+    },
+    {
+      "name": "GitHub Desktop (machine-wide deployment)",
+      "match": {
+        "product": "^github desktop deployment tool",
+        "file": "GitHubDesktopSetup-x64\\.msi"
+      },
+      "install": "msiexec /i \"{file}\" /qn /norestart",
+      "uninstall": "msiexec /x \"{file}\" /qn /norestart",
+      "detect": null,
+      "note": "This MSI does NOT install GitHub Desktop machine-wide. It installs \"GitHub Desktop Deployment Tool\" plus an HKLM Run entry (GitHubDesktopDeploymentTool.exe --checkInstall), which installs GitHub Desktop into each user's own profile when they sign in. So the app appears per user after their next sign-in, and removing this MSI does not touch copies already installed in profiles.",
+      "verified": {
+        "on": "2026-11-11",
+        "version": "3.6.11.0",
+        "uninstall": true
+      }
+    },
+    {
+      "name": "Chrome Remote Desktop Host",
+      "match": {
+        "product": "^chrome remote desktop host",
+        "file": "remoting-host\\.msi|chromeremotedesktophost\\.msi"
+      },
+      "install": "msiexec /i \"{file}\" /qn /norestart",
+      "uninstall": "msiexec /x \"{file}\" /qn /norestart",
+      "detect": null,
+      "note": "Installs the host service only. Nobody can connect until the computer is registered to a Google account, either by a user at remotedesktop.google.com/access or headless with the one-time command Google generates at remotedesktop.google.com/headless.",
+      "verified": {
+        "on": "2026-11-11",
+        "version": "157.0.8103.41",
+        "uninstall": true
+      }
+    },
+    {
+      "name": "Malwarebytes",
+      "match": {
+        "product": "^malwarebytes",
+        "file": "mb\\d-setup|MBSetup"
+      },
+      "install": "{file} /VERYSILENT /NORESTART",
+      "uninstall": "\"C:\\Program Files\\Malwarebytes\\Anti-Malware\\mbuns.exe\" /uninstall /arp /VERYSILENT /NORESTART",
+      "detect": null,
+      "note": "Use the offline installer. The download looks like an NSIS package to a scanner, but what it installs is Inno Setup (its Add/Remove Programs key ends in _is1), and the Inno switches are the ones that worked: /S is not the answer here. About 5 minutes as SYSTEM in the lab. This is the consumer / Premium client; ThreatDown (Malwarebytes for business) deploys its own agent from the Nebula or OneView console.",
+      "verified": {
+        "on": "2026-11-11",
+        "version": "5.7.3.376",
+        "uninstall": true
+      }
+    },
+    {
+      "name": "Sublime Text 4",
+      "match": {
+        "product": "^sublime text",
+        "file": "sublime_text_build_.*_setup\\.exe"
+      },
+      "install": "{file} /VERYSILENT /SUPPRESSMSGBOXES /NORESTART",
+      "uninstall": "\"%ProgramFiles%\\Sublime Text\\unins000.exe\" /VERYSILENT /SUPPRESSMSGBOXES /NORESTART",
+      "detect": null,
+      "note": "Inno Setup, machine-wide into Program Files. Add/Remove Programs shows no version number for it, so detect it by the file C:\\Program Files\\Sublime Text\\sublime_text.exe rather than by version. A licence is entered in the app, not at install.",
+      "verified": {
+        "on": "2026-11-11",
+        "version": "4 (build 4215)",
+        "uninstall": true
+      }
+    },
+    {
+      "name": "RStudio Desktop",
+      "match": {
+        "product": "^rstudio",
+        "file": "RStudio-.*\\.exe"
+      },
+      "install": "{file} /S /allusers",
+      "uninstall": "\"%ProgramFiles%\\RStudio\\Uninstall.exe\" /allusers /S",
+      "detect": null,
+      "note": "NSIS with both scopes: /allusers installs machine-wide (/currentuser is the per-user choice). It needs R installed to run, not to install: deploy R for Windows first or alongside. About 4 minutes as SYSTEM in the lab.",
+      "verified": {
+        "on": "2026-11-11",
+        "version": "2026.10.1+239",
+        "uninstall": true
+      }
+    },
+    {
+      "name": "Zotero",
+      "match": {
+        "product": "^zotero",
+        "file": "Zotero-.*_setup\\.exe"
+      },
+      "install": "{file} /S",
+      "uninstall": "\"%ProgramFiles%\\Zotero\\uninstall\\helper.exe\" /S",
+      "detect": null,
+      "note": "Built on Firefox's installer, so a scanner reads the download as a 7-Zip self-extractor and can't see the switch. /S installs machine-wide into Program Files; the uninstaller is uninstall\\helper.exe, like Firefox's.",
+      "verified": {
+        "on": "2026-11-11",
+        "version": "10.0.8",
+        "uninstall": true
+      }
+    },
+    {
+      "name": "Slack (MSIX, all users)",
+      "match": {
+        "product": "^slack$",
+        "file": "^Slack.*\\.msix$"
+      },
+      "install": "Add-AppxProvisionedPackage -Online -PackagePath \"{file}\" -SkipLicense",
+      "uninstall": "Get-AppxProvisionedPackage -Online | Where-Object DisplayName -eq \"com.tinyspeck.slackdesktop\" | Remove-AppxProvisionedPackage -Online -AllUsers",
+      "detect": null,
+      "note": "PowerShell, not msiexec: Slack's machine-wide download is Slack.msix. Provisioning stages it for every account, and each user gets it at their next sign-in; it does not show in Add/Remove Programs (check with Get-AppxProvisionedPackage -Online, DisplayName com.tinyspeck.slackdesktop). -AllUsers on the removal also takes it off accounts that already have it.",
+      "verified": {
+        "on": "2026-11-11",
+        "version": "4.53.287.0",
+        "uninstall": true
+      }
+    },
+    {
+      "name": "calibre",
+      "match": {
+        "product": "^calibre",
+        "file": "calibre-64bit-.*\\.msi"
+      },
+      "install": "msiexec /i \"{file}\" /qn /norestart",
+      "uninstall": "msiexec /x \"{file}\" /qn /norestart",
+      "detect": null,
+      "note": "The install folder is set with APPLICATIONFOLDER; INSTALLDIR is ignored by this package.",
+      "verified": {
+        "on": "2026-11-11",
+        "version": "9.18.0",
         "uninstall": true
       }
     }
