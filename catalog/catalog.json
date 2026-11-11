@@ -1,6 +1,6 @@
 {
   "_comment": "GENERATED from src/lib/catalog.ts by scripts/gen-catalog.ts - do not hand-edit. Regenerate: npm run gen:catalog",
-  "count": 148,
+  "count": 163,
   "entries": [
     {
       "name": "Citrix Workspace",
@@ -109,12 +109,13 @@
         "file": "python-3\\.\\d"
       },
       "install": "{file} /quiet InstallAllUsers=1 PrependPath=1",
-      "uninstall": null,
+      "uninstall": "{file} /uninstall /quiet",
       "detect": null,
-      "note": "Custom bootstrapper; properties are bare NAME=value (no slash). Add Include_test=0 to skip the test suite.",
+      "note": "Custom bootstrapper; properties are bare NAME=value (no slash). Add Include_test=0 to skip the test suite. It shows about nine entries in Add/Remove Programs (core interpreter, standard library, pip bootstrap, add to path...); the same installer with /uninstall /quiet removed all of them in the lab.",
       "verified": {
-        "on": "2026-07-29",
-        "version": "3.12.10"
+        "on": "2026-11-11",
+        "version": "3.14.10",
+        "uninstall": true
       }
     },
     {
@@ -140,12 +141,13 @@
         "file": "Git-\\d.*64-bit"
       },
       "install": "{file} /VERYSILENT /NORESTART",
-      "uninstall": null,
+      "uninstall": "\"%ProgramFiles%\\Git\\unins000.exe\" /VERYSILENT /NORESTART",
       "detect": null,
       "note": "Inno Setup. Use /LOADINF=\"config.inf\" to preset components/options (record one with /SAVEINF).",
       "verified": {
-        "on": "2026-07-29",
-        "version": "2.55.0.3"
+        "on": "2026-11-11",
+        "version": "2.56.0.4",
+        "uninstall": true
       }
     },
     {
@@ -454,12 +456,13 @@
         "file": "gimp.*setup"
       },
       "install": "{file} /VERYSILENT /SUPPRESSMSGBOXES /NORESTART /ALLUSERS",
-      "uninstall": null,
+      "uninstall": "\"%ProgramFiles%\\GIMP 3\\uninst\\unins000.exe\" /VERYSILENT /SUPPRESSMSGBOXES /NORESTART",
       "detect": null,
-      "note": "Inno Setup, and /VERYSILENT alone is NOT enough. Like Greenshot, GIMP shows the Inno \"Select Setup Install Mode\" dialog, presented BEFORE the silent machinery engages - no /SILENT flag suppresses it. Without /ALLUSERS it hangs forever under a deployment tool (session 0 has nobody to click it). Verified installing machine-wide with these switches. It is also SLOW - roughly 9 minutes for the ~300 MB payload - so raise your deployment timeout above the usual 5-minute default or the job is killed mid-install.",
+      "note": "Inno Setup, and /VERYSILENT alone is NOT enough. Like Greenshot, GIMP shows the Inno \"Select Setup Install Mode\" dialog, presented BEFORE the silent machinery engages - no /SILENT flag suppresses it. Without /ALLUSERS it hangs forever under a deployment tool (session 0 has nobody to click it). Verified installing machine-wide with these switches. It can be SLOW: about 9 minutes for 3.2.4 on one lab VM, 1.5 minutes for 3.2.8 on another, so raise a 5-minute deployment timeout. The uninstaller sits in an uninst subfolder, not next to gimp.exe.",
       "verified": {
-        "on": "2026-07-29",
-        "version": "3.2.4"
+        "on": "2026-11-11",
+        "version": "3.2.8",
+        "uninstall": true
       }
     },
     {
@@ -469,12 +472,13 @@
         "file": "node-v.*\\.msi"
       },
       "install": "msiexec /i \"{file}\" /qn /norestart",
-      "uninstall": null,
+      "uninstall": "msiexec /x \"{file}\" /qn /norestart",
       "detect": null,
       "note": null,
       "verified": {
-        "on": "2026-07-29",
-        "version": "24.18.0"
+        "on": "2026-11-11",
+        "version": "26.12.1",
+        "uninstall": true
       }
     },
     {
@@ -506,6 +510,22 @@
       }
     },
     {
+      "name": "Audacity 4 (MSI)",
+      "match": {
+        "product": null,
+        "file": "audacity-win-.*\\.msi$"
+      },
+      "install": "msiexec /i \"{file}\" /qn /norestart",
+      "uninstall": "msiexec /x \"{file}\" /qn /norestart",
+      "detect": null,
+      "note": "From version 4 Audacity ships an MSI instead of the Inno Setup exe, so the old /VERYSILENT line no longer applies. It registers as \"Audacity 4.0\".",
+      "verified": {
+        "on": "2026-11-11",
+        "version": "4.0.2",
+        "uninstall": true
+      }
+    },
+    {
       "name": "Audacity",
       "match": {
         "product": "audacity",
@@ -514,7 +534,7 @@
       "install": "{file} /VERYSILENT /NORESTART",
       "uninstall": null,
       "detect": null,
-      "note": "Inno Setup.",
+      "note": "Inno Setup (Audacity 3.x). Audacity 4 ships an MSI instead; see the Audacity 4 entry.",
       "verified": {
         "on": "2026-07-29",
         "version": "3.7.8"
@@ -586,12 +606,13 @@
         "file": "libreoffice.*\\.msi"
       },
       "install": "msiexec /i \"{file}\" /quiet /norestart",
-      "uninstall": null,
+      "uninstall": "msiexec /x \"{file}\" /quiet /norestart",
       "detect": null,
       "note": "Standard MSI. Add REGISTER_ALL_MSO_TYPES=1 to take over Office file associations, or REGISTER_NO_MSO_TYPES=1 to leave them alone.",
       "verified": {
-        "on": "2026-07-29",
-        "version": "26.2.4.2"
+        "on": "2026-11-11",
+        "version": "26.8.2.2",
+        "uninstall": true
       }
     },
     {
@@ -2284,6 +2305,230 @@
       "verified": {
         "on": "2026-11-11",
         "version": "8.3.4191.35",
+        "uninstall": true
+      }
+    },
+    {
+      "name": "Zabbix Agent 2",
+      "match": {
+        "product": "^zabbix agent 2",
+        "file": "zabbix_agent2-.*-windows-amd64.*\\.msi"
+      },
+      "install": "msiexec /i \"{file}\" /qn SERVER=zabbix.example.com SERVERACTIVE=zabbix.example.com",
+      "uninstall": "msiexec /x \"{file}\" /qn /norestart",
+      "detect": null,
+      "note": "Put your own server in SERVER (who may poll this agent) and SERVERACTIVE (where it sends active checks). In the lab both landed as Server= and ServerActive= in zabbix_agent2.conf and the service started. Without them the agent installs but nothing can talk to it. HOSTNAME defaults to the computer name.",
+      "verified": {
+        "on": "2026-11-11",
+        "version": "7.4.8",
+        "uninstall": true
+      }
+    },
+    {
+      "name": "Wazuh Agent",
+      "match": {
+        "product": "^wazuh agent",
+        "file": "wazuh-agent-.*\\.msi"
+      },
+      "install": "msiexec /i \"{file}\" /q WAZUH_MANAGER=\"wazuh.example.com\"",
+      "uninstall": "msiexec /x \"{file}\" /qn /norestart",
+      "detect": null,
+      "note": "WAZUH_MANAGER is what points it at your manager; in the lab it landed in ossec.conf as <address>. The service (WazuhSvc) was left STOPPED after the install, so start it in the same deployment: NET START WazuhSvc. Without a start it never enrols.",
+      "verified": {
+        "on": "2026-11-11",
+        "version": "4.14.10",
+        "uninstall": true
+      }
+    },
+    {
+      "name": "Splunk Universal Forwarder",
+      "match": {
+        "product": "^universalforwarder",
+        "file": "splunkforwarder-.*-windows-x64\\.msi"
+      },
+      "install": "msiexec /i \"{file}\" AGREETOLICENSE=Yes /quiet",
+      "uninstall": "msiexec /x \"{file}\" /qn /norestart",
+      "detect": null,
+      "note": "AGREETOLICENSE=Yes is REQUIRED: the MSI defaults it to No, and without it the lab install failed with 1603 (its log: CheckLicenseAgreement, Return value 3). With it the SplunkForwarder service installed set to Automatic and running. It registers as \"UniversalForwarder\" in Add/Remove Programs. With no SPLUNKUSERNAME/SPLUNKPASSWORD the MSI's default GENRANDOMPASSWORD=1 sets a random admin password.",
+      "verified": {
+        "on": "2026-11-11",
+        "version": "10.6.1.1",
+        "uninstall": true
+      }
+    },
+    {
+      "name": "GLPI Agent",
+      "match": {
+        "product": "^glpi agent",
+        "file": "GLPI-Agent-.*-x64\\.msi"
+      },
+      "install": "msiexec /i \"{file}\" /quiet SERVER=\"https://glpi.example.com/\"",
+      "uninstall": "msiexec /x \"{file}\" /qn /norestart",
+      "detect": null,
+      "note": "SERVER is not declared in the MSI's property table (the agent's own setup reads it), so a scanner can't offer it, but it works: in the lab it landed in HKLM\\SOFTWARE\\GLPI-Agent (server) and the glpi-agent service was running. Use your GLPI URL, including the trailing slash.",
+      "verified": {
+        "on": "2026-11-11",
+        "version": "1.21",
+        "uninstall": true
+      }
+    },
+    {
+      "name": "Salt Minion",
+      "match": {
+        "product": "^salt minion",
+        "file": "Salt-Minion-.*-Py3-AMD64\\.msi"
+      },
+      "install": "msiexec /i \"{file}\" /qn MASTER=salt.example.com",
+      "uninstall": "msiexec /x \"{file}\" /qn /norestart",
+      "detect": null,
+      "note": "MASTER points it at your salt master; in the lab it landed in the minion config (master: salt.example.com) and the salt-minion service was running. MINION_ID sets the minion ID.",
+      "verified": {
+        "on": "2026-11-11",
+        "version": "3008.5",
+        "uninstall": true
+      }
+    },
+    {
+      "name": "osquery",
+      "match": {
+        "product": "^osquery",
+        "file": "osquery-[0-9.]+\\.msi"
+      },
+      "install": "msiexec /i \"{file}\" /qn /norestart",
+      "uninstall": "msiexec /x \"{file}\" /qn /norestart",
+      "detect": null,
+      "note": "A plain MSI that installs and STARTS the osqueryd service right away, with the packaged defaults. Ship your osquery.flags / osquery.conf (or your fleet manager's) with it.",
+      "verified": {
+        "on": "2026-11-11",
+        "version": "5.24.1",
+        "uninstall": true
+      }
+    },
+    {
+      "name": "AWS VPN Client",
+      "match": {
+        "product": "^aws vpn client",
+        "file": "AWS_VPN_Client\\.msi"
+      },
+      "install": "msiexec /i \"{file}\" /qn /norestart",
+      "uninstall": "msiexec /x \"{file}\" /qn /norestart",
+      "detect": null,
+      "note": "A plain MSI; its aws-client-vpn-daemon service starts at install. Users still import the .ovpn profile from your Client VPN endpoint in the app.",
+      "verified": {
+        "on": "2026-11-11",
+        "version": "6.2.1",
+        "uninstall": true
+      }
+    },
+    {
+      "name": "TortoiseSVN",
+      "match": {
+        "product": "^tortoisesvn",
+        "file": "TortoiseSVN-.*-x64-svn-.*\\.msi"
+      },
+      "install": "msiexec /i \"{file}\" /qn /norestart",
+      "uninstall": "msiexec /x \"{file}\" /qn /norestart",
+      "detect": null,
+      "note": "A plain MSI. The Explorer context-menu extension shows up for users after Explorer restarts (sign out and in).",
+      "verified": {
+        "on": "2026-11-11",
+        "version": "1.15.0.29830",
+        "uninstall": true
+      }
+    },
+    {
+      "name": "VSCodium",
+      "match": {
+        "product": "^vscodium",
+        "file": "VSCodiumSetup-x64-"
+      },
+      "install": "{file} /VERYSILENT /NORESTART /MERGETASKS=!runcode",
+      "uninstall": "\"%ProgramFiles%\\VSCodium\\unins000.exe\" /VERYSILENT /NORESTART",
+      "detect": null,
+      "note": "Same installer family as VS Code: use the system installer (VSCodiumSetup-x64-*.exe), not VSCodiumUserSetup, which run as SYSTEM installs into SYSTEM's own profile. /MERGETASKS=!runcode stops it launching after install.",
+      "verified": {
+        "on": "2026-11-11",
+        "version": "1.143.17232",
+        "uninstall": true
+      }
+    },
+    {
+      "name": "NoMachine",
+      "match": {
+        "product": "^nomachine",
+        "file": "nomachine.*_x64\\.exe"
+      },
+      "install": "{file} /VERYSILENT /NORESTART",
+      "uninstall": "\"%ProgramData%\\NoMachine\\var\\uninstall\\unins000.exe\" /VERYSILENT /NORESTART",
+      "detect": null,
+      "note": "Inno Setup. It installs the NoMachine SERVER too and starts it at install (nxd and nxserver were running right after, in the lab), so the machine accepts NoMachine connections from then on; check that against your remote-access policy. The uninstaller lives under ProgramData, not Program Files.",
+      "verified": {
+        "on": "2026-11-11",
+        "version": "10.2.3",
+        "uninstall": true
+      }
+    },
+    {
+      "name": "Mattermost Desktop",
+      "match": {
+        "product": "^mattermost$",
+        "file": "mattermost-desktop-.*-win-x64\\.msi"
+      },
+      "install": "msiexec /i \"{file}\" /qn /norestart",
+      "uninstall": "msiexec /x \"{file}\" /qn /norestart",
+      "detect": null,
+      "note": "A machine-wide MSI. The install folder is set with APPLICATIONFOLDER; INSTALLDIR is ignored by this package.",
+      "verified": {
+        "on": "2026-11-11",
+        "version": "6.3.2",
+        "uninstall": true
+      }
+    },
+    {
+      "name": "Apple iTunes",
+      "match": {
+        "product": "^itunes$",
+        "file": "iTunes(64)?Setup\\.exe"
+      },
+      "install": "{file} /quiet /norestart",
+      "uninstall": "msiexec /x {2B368BAD-1383-4272-B8C9-D1A1AAA86A20} /qn /norestart",
+      "detect": null,
+      "note": "The exe unpacks and runs its MSIs; /quiet /norestart installed it as SYSTEM in about a minute. It registered as one \"iTunes\" entry in Add/Remove Programs, removed with msiexec /x and its product code (shown for 12.13.12.3; it changes per version).",
+      "verified": {
+        "on": "2026-11-11",
+        "version": "12.13.12.3",
+        "uninstall": true
+      }
+    },
+    {
+      "name": "ONLYOFFICE Desktop Editors",
+      "match": {
+        "product": "^onlyoffice",
+        "file": "DesktopEditors_x64\\.exe"
+      },
+      "install": "{file} /VERYSILENT /SUPPRESSMSGBOXES /NORESTART",
+      "uninstall": "\"%ProgramFiles%\\ONLYOFFICE\\DesktopEditors\\unins000.exe\" /VERYSILENT /SUPPRESSMSGBOXES /NORESTART",
+      "detect": null,
+      "note": "Inno Setup, machine-wide. It installs and starts its own update service (updatesvc) at install time.",
+      "verified": {
+        "on": "2026-11-11",
+        "version": "10.0.0",
+        "uninstall": true
+      }
+    },
+    {
+      "name": "Shotcut",
+      "match": {
+        "product": "^shotcut",
+        "file": "shotcut-win64-.*\\.exe"
+      },
+      "install": "{file} /VERYSILENT /SUPPRESSMSGBOXES /NORESTART /ALLUSERS",
+      "uninstall": "\"%ProgramFiles%\\Shotcut\\unins000.exe\" /VERYSILENT /SUPPRESSMSGBOXES /NORESTART",
+      "detect": null,
+      "note": "Inno Setup with both scopes, so pass /ALLUSERS for a machine-wide install (/CURRENTUSER is the per-user one).",
+      "verified": {
+        "on": "2026-11-11",
+        "version": "26.9.27",
         "uninstall": true
       }
     },
