@@ -1,6 +1,6 @@
 {
   "_comment": "GENERATED from src/lib/catalog.ts by scripts/gen-catalog.ts - do not hand-edit. Regenerate: npm run gen:catalog",
-  "count": 175,
+  "count": 179,
   "entries": [
     {
       "name": "Citrix Workspace",
@@ -1573,6 +1573,22 @@
       }
     },
     {
+      "name": "Microsoft ODBC Driver 17 for SQL Server",
+      "match": {
+        "product": "^microsoft odbc driver 17 for sql server",
+        "file": "msodbcsql17.*\\.msi"
+      },
+      "install": "msiexec /i \"{file}\" /qn /norestart IACCEPTMSODBCSQLLICENSETERMS=YES",
+      "uninstall": "msiexec /x \"{file}\" /qn /norestart",
+      "detect": null,
+      "note": "IACCEPTMSODBCSQLLICENSETERMS=YES is required for a silent install, as with 18. 17 and 18 install side by side; many older apps name \"ODBC Driver 17 for SQL Server\" in their connection strings, so 18 alone won't satisfy them. Microsoft's download is named msodbcsql.msi for both versions; rename it to keep them apart.",
+      "verified": {
+        "on": "2026-11-11",
+        "version": "17.11.1.1",
+        "uninstall": true
+      }
+    },
+    {
       "name": "Microsoft ODBC Driver 18 for SQL Server",
       "match": {
         "product": "^microsoft odbc driver 18",
@@ -2689,6 +2705,54 @@
       "verified": {
         "on": "2026-11-11",
         "version": "26.2.0.7",
+        "uninstall": true
+      }
+    },
+    {
+      "name": "Power BI Report Builder",
+      "match": {
+        "product": "^(microsoft )?power bi report builder",
+        "file": "PowerBIReportBuilder\\.msi"
+      },
+      "install": "msiexec /i \"{file}\" /qn /norestart",
+      "uninstall": "msiexec /x \"{file}\" /qn /norestart",
+      "detect": null,
+      "note": "A plain MSI, separate from Power BI Desktop (for paginated reports).",
+      "verified": {
+        "on": "2026-11-11",
+        "version": "15.7.1821.21",
+        "uninstall": true
+      }
+    },
+    {
+      "name": "Microsoft Visual C++ 2005 Redistributable (x64)",
+      "match": {
+        "product": "visual c\\+\\+ 2005 redistributable \\(x64\\)",
+        "file": "vcredist(2005)?_x64\\.exe"
+      },
+      "install": "{file} /q",
+      "uninstall": "msiexec /x {ad8a2fa1-06e7-4b0d-927d-6e54b3d31028} /qn /norestart",
+      "detect": null,
+      "note": "An old IExpress wrapper: /q is the whole silent switch. 8.0.61000 is the final 2005 SP1 security update; the uninstall uses its MSI product code.",
+      "verified": {
+        "on": "2026-11-11",
+        "version": "8.0.61000",
+        "uninstall": true
+      }
+    },
+    {
+      "name": "Microsoft Visual C++ 2005 Redistributable (x86)",
+      "match": {
+        "product": "visual c\\+\\+ 2005 redistributable$",
+        "file": "vcredist(2005)?_x86\\.exe"
+      },
+      "install": "{file} /q",
+      "uninstall": "msiexec /x {710f4c1c-cc18-4c49-8cbf-51240c89a1a2} /qn /norestart",
+      "detect": null,
+      "note": "An old IExpress wrapper: /q is the whole silent switch. The x86 runtime registers as \"Microsoft Visual C++ 2005 Redistributable\" with no \"(x86)\" in the name, unlike the x64 one, so a name-based detection rule must not require \"(x86)\".",
+      "verified": {
+        "on": "2026-11-11",
+        "version": "8.0.61001",
         "uninstall": true
       }
     },

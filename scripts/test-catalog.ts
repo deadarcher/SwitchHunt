@@ -45,6 +45,8 @@ eq('Microsoft OpenJDK 17 is not the 21 entry', lookupCatalog({ product: 'Microso
 eq('Microsoft OpenJDK 21', lookupCatalog({ product: 'Microsoft Build of OpenJDK  21.0.12.1+1 (x64)', fileName: 'microsoft-jdk-21.0.12.1-windows-x64.msi' })?.name, 'Microsoft Build of OpenJDK 21');
 eq('Audacity 4 MSI', lookupCatalog({ product: 'Audacity 4.0', fileName: 'audacity-win-4.0.2-x86_64.msi' })?.name, 'Audacity 4 (MSI)');
 eq('Audacity 3 exe stays on the Inno entry', lookupCatalog({ product: 'Audacity', fileName: 'audacity-win-3.7.8-64bit.exe' })?.name, 'Audacity');
+eq('ODBC 17 MSI (named msodbcsql.msi, like 18)', lookupCatalog({ product: 'Microsoft ODBC Driver 17 for SQL Server', fileName: 'msodbcsql.msi' })?.name, 'Microsoft ODBC Driver 17 for SQL Server');
+eq('ODBC 18 MSI', lookupCatalog({ product: 'Microsoft ODBC Driver 18 for SQL Server', fileName: 'msodbcsql.msi' })?.name, 'Microsoft ODBC Driver 18 for SQL Server');
 eq('Wireshark current file name', lookupCatalog({ fileName: 'Wireshark-4.6.9-x64.exe' })?.name, 'Wireshark');
 
 // No catalog command may use start with a non-empty first quoted argument (start takes it as the title).
