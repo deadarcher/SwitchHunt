@@ -41,6 +41,8 @@ eq('Foxit Reader MSI by product', lookupCatalog({ product: 'Foxit PDF Reader', f
 eq('Foxit Reader MSI by file only', lookupCatalog({ fileName: 'FoxitPDFReader202621_L10N_Setup_x64.msi' })?.name, 'Foxit PDF Reader');
 eq('Foxit Editor by product', lookupCatalog({ product: 'Foxit PDF Editor', fileName: 'x.msi' })?.name, 'Foxit PDF Editor');
 eq('Foxit Editor by file', lookupCatalog({ fileName: 'FoxitPDFEditor20262_enu_Setup.msi' })?.name, 'Foxit PDF Editor');
+eq('Microsoft OpenJDK 17 is not the 21 entry', lookupCatalog({ product: 'Microsoft Build of OpenJDK  17.0.21.0.2+1 (x64)', fileName: 'microsoft-jdk-17.0.21.0.2-windows-x64.msi' })?.name, 'Microsoft Build of OpenJDK 17');
+eq('Microsoft OpenJDK 21', lookupCatalog({ product: 'Microsoft Build of OpenJDK  21.0.12.1+1 (x64)', fileName: 'microsoft-jdk-21.0.12.1-windows-x64.msi' })?.name, 'Microsoft Build of OpenJDK 21');
 eq('Wireshark current file name', lookupCatalog({ fileName: 'Wireshark-4.6.9-x64.exe' })?.name, 'Wireshark');
 
 // No catalog command may use start with a non-empty first quoted argument (start takes it as the title).

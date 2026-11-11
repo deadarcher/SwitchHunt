@@ -1,6 +1,6 @@
 {
   "_comment": "GENERATED from src/lib/catalog.ts by scripts/gen-catalog.ts - do not hand-edit. Regenerate: npm run gen:catalog",
-  "count": 137,
+  "count": 148,
   "entries": [
     {
       "name": "Citrix Workspace",
@@ -315,10 +315,13 @@
         "file": "rustdesk"
       },
       "install": "{file} --silent-install",
-      "uninstall": "{file} --uninstall",
+      "uninstall": "\"C:\\Program Files\\RustDesk\\RustDesk.exe\" --uninstall",
       "detect": null,
-      "note": "Custom double-dash CLI (not MSI-style). --silent-install installs + registers the service. Drop a RustDesk2.toml beside the exe to preconfigure the relay/key.",
-      "verified": null
+      "note": "Custom double-dash CLI (not MSI-style). --silent-install installs + registers the service. Drop a RustDesk2.toml beside the exe to preconfigure the relay/key. UNINSTALL TRAP: run as SYSTEM, one --uninstall removed the Add/Remove Programs entry and exited 1, but the RustDesk service kept running (set to Automatic), so a remote-access tool stayed live on a machine that looked clean. Running the same command a second time removed the service and the folder. Run it twice, then check that the RustDesk service is gone.",
+      "verified": {
+        "on": "2026-11-11",
+        "version": "1.5.1"
+      }
     },
     {
       "name": "ESET Endpoint Security",
@@ -1823,8 +1826,8 @@
     {
       "name": "Microsoft Build of OpenJDK 21",
       "match": {
-        "product": "^microsoft build of openjdk",
-        "file": "microsoft-jdk-.*-windows-x64\\.msi"
+        "product": "^microsoft build of openjdk\\s+21\\.",
+        "file": "microsoft-jdk-21\\..*-windows-x64\\.msi"
       },
       "install": "msiexec /i \"{file}\" /qn /norestart",
       "uninstall": "msiexec /x \"{file}\" /qn /norestart",
@@ -2105,6 +2108,182 @@
       "verified": {
         "on": "2026-11-11",
         "version": "4.53.287.0",
+        "uninstall": true
+      }
+    },
+    {
+      "name": "Go",
+      "match": {
+        "product": "^go programming language",
+        "file": "go[0-9.]+\\.windows-amd64\\.msi"
+      },
+      "install": "msiexec /i \"{file}\" /qn /norestart",
+      "uninstall": "msiexec /x \"{file}\" /qn /norestart",
+      "detect": null,
+      "note": "A plain MSI into C:\\Program Files\\Go, and it adds Go's bin folder to the system PATH; already-open shells and services only see it after a restart of that process.",
+      "verified": {
+        "on": "2026-11-11",
+        "version": "1.27.4",
+        "uninstall": true
+      }
+    },
+    {
+      "name": "Microsoft Build of OpenJDK 17",
+      "match": {
+        "product": "^microsoft build of openjdk\\s+17\\.",
+        "file": "microsoft-jdk-17\\..*-windows-x64\\.msi"
+      },
+      "install": "msiexec /i \"{file}\" /qn /norestart",
+      "uninstall": "msiexec /x \"{file}\" /qn /norestart",
+      "detect": null,
+      "note": "Same package layout as the JDK 21 build: a plain MSI. To set JAVA_HOME and PATH, add ADDLOCAL=FeatureMain,FeatureEnvironment,FeatureJarFileRunWith,FeatureJavaHome.",
+      "verified": {
+        "on": "2026-11-11",
+        "version": "17.0.21.0.2",
+        "uninstall": true
+      }
+    },
+    {
+      "name": "pgAdmin 4",
+      "match": {
+        "product": "^pgadmin 4",
+        "file": "pgadmin4-.*-x64\\.exe"
+      },
+      "install": "{file} /VERYSILENT /SUPPRESSMSGBOXES /NORESTART /ALLUSERS",
+      "uninstall": "\"%ProgramFiles%\\pgAdmin 4\\unins000.exe\" /VERYSILENT /SUPPRESSMSGBOXES /NORESTART",
+      "detect": null,
+      "note": "Inno Setup with both scopes, so pass /ALLUSERS for a machine-wide install (/CURRENTUSER is the per-user one). The uninstaller path assumes the default folder.",
+      "verified": {
+        "on": "2026-11-11",
+        "version": "9.19",
+        "uninstall": true
+      }
+    },
+    {
+      "name": "HeidiSQL",
+      "match": {
+        "product": "^heidisql",
+        "file": "HeidiSQL_.*_Setup\\.exe"
+      },
+      "install": "{file} /VERYSILENT /SUPPRESSMSGBOXES /NORESTART",
+      "uninstall": "\"%ProgramFiles%\\HeidiSQL\\unins000.exe\" /VERYSILENT /SUPPRESSMSGBOXES /NORESTART",
+      "detect": null,
+      "note": "Inno Setup, machine-wide. Installed in about 10 seconds as SYSTEM in the lab.",
+      "verified": {
+        "on": "2026-11-11",
+        "version": "12.22.0.7382",
+        "uninstall": true
+      }
+    },
+    {
+      "name": "MySQL Workbench",
+      "match": {
+        "product": "^mysql workbench",
+        "file": "mysql-workbench-.*-winx64\\.msi"
+      },
+      "install": "msiexec /i \"{file}\" /qn /norestart",
+      "uninstall": "msiexec /x \"{file}\" /qn /norestart",
+      "detect": null,
+      "note": "A plain MSI. It needs the Visual C++ 2015-2022 x64 runtime; deploy that first on a machine that might not have it.",
+      "verified": {
+        "on": "2026-11-11",
+        "version": "26.10.0",
+        "uninstall": true
+      }
+    },
+    {
+      "name": "Blender",
+      "match": {
+        "product": "^blender",
+        "file": "blender-.*-windows-x64\\.msi"
+      },
+      "install": "msiexec /i \"{file}\" /qn /norestart",
+      "uninstall": "msiexec /x \"{file}\" /qn /norestart",
+      "detect": null,
+      "note": "During the install a custom action runs blender-launcher.exe --register-allusers to register .blend files, so Blender briefly runs as SYSTEM (seen in the lab); the uninstall runs --unregister-allusers. The MSI also carries a custom action that opens fund.blender.org in a browser; no browser was left running after the /qn install in the lab.",
+      "verified": {
+        "on": "2026-11-11",
+        "version": "5.3.0",
+        "uninstall": true
+      }
+    },
+    {
+      "name": "Obsidian",
+      "match": {
+        "product": "^obsidian$",
+        "file": "Obsidian-[0-9.]+\\.exe"
+      },
+      "install": "{file} /S /allusers",
+      "uninstall": "\"%ProgramFiles%\\Obsidian\\Uninstall Obsidian.exe\" /allusers /S",
+      "detect": null,
+      "note": "NSIS (electron-builder) with both scopes: /allusers is the machine-wide install into Program Files, /currentuser the per-user one. The uninstaller needs /allusers too.",
+      "verified": {
+        "on": "2026-11-11",
+        "version": "1.15.0",
+        "uninstall": true
+      }
+    },
+    {
+      "name": "Power Automate for desktop",
+      "match": {
+        "product": "^power automate for desktop",
+        "file": "Setup\\.Microsoft\\.PowerAutomate\\.exe"
+      },
+      "install": "{file} -Silent -Install -ACCEPTEULA",
+      "uninstall": "{file} -Silent -Uninstall",
+      "detect": null,
+      "note": "Its own dash-style switches, not /quiet; -ACCEPTEULA is required for an unattended install. Slow: about 9 minutes as SYSTEM in the lab. It registers two Add/Remove Programs entries and starts its launcher service right away; the -Uninstall removed both.",
+      "verified": {
+        "on": "2026-11-11",
+        "version": "2.74.00191.26302",
+        "uninstall": true
+      }
+    },
+    {
+      "name": "Jabra Direct",
+      "match": {
+        "product": "^jabra direct",
+        "file": "JabraDirectSetup\\.exe"
+      },
+      "install": "{file} /install /quiet /norestart",
+      "uninstall": "{file} /uninstall /quiet /norestart",
+      "detect": null,
+      "note": "A WiX Burn bundle, so it shows three \"Jabra Direct\" entries in Add/Remove Programs (the bundle and two MSIs); the bundle's /uninstall removed all three in the lab.",
+      "verified": {
+        "on": "2026-11-11",
+        "version": "8.4.30601",
+        "uninstall": true
+      }
+    },
+    {
+      "name": "XnView MP",
+      "match": {
+        "product": "^xnview mp",
+        "file": "XnView_MP-.*-win-x64\\.exe"
+      },
+      "install": "{file} /VERYSILENT /SUPPRESSMSGBOXES /NORESTART",
+      "uninstall": "\"%ProgramFiles%\\XnViewMP\\unins000.exe\" /VERYSILENT /SUPPRESSMSGBOXES /NORESTART",
+      "detect": null,
+      "note": "Inno Setup, machine-wide. The install folder is XnViewMP (no space), which matters for a detection rule.",
+      "verified": {
+        "on": "2026-11-11",
+        "version": "1.12.3",
+        "uninstall": true
+      }
+    },
+    {
+      "name": "Vivaldi",
+      "match": {
+        "product": "^vivaldi( installer)?$",
+        "file": "Vivaldi\\.[0-9.]+\\.x64\\.exe"
+      },
+      "install": "{file} --vivaldi-silent --do-not-launch-chrome --system-level",
+      "uninstall": "\"C:\\Program Files\\Vivaldi\\Application\\<version>\\Installer\\setup.exe\" --uninstall --system-level --force-uninstall",
+      "detect": null,
+      "note": "Chromium-style switches. --system-level is what makes it machine-wide; without it the installer is per-user. The uninstall path contains the version number, so read it from the UninstallString in the registry. The uninstall exits 19, which Chromium-based installers use for a successful uninstall, so add 19 to your deployment tool's success codes.",
+      "verified": {
+        "on": "2026-11-11",
+        "version": "8.3.4191.35",
         "uninstall": true
       }
     },
