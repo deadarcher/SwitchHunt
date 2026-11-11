@@ -1,6 +1,6 @@
 {
   "_comment": "GENERATED from src/lib/catalog.ts by scripts/gen-catalog.ts - do not hand-edit. Regenerate: npm run gen:catalog",
-  "count": 167,
+  "count": 173,
   "entries": [
     {
       "name": "Citrix Workspace",
@@ -2561,6 +2561,102 @@
       "verified": {
         "on": "2026-11-11",
         "version": "2.0.2",
+        "uninstall": true
+      }
+    },
+    {
+      "name": "Windows Admin Center (v2)",
+      "match": {
+        "product": "^windows admin center",
+        "file": "WindowsAdminCenter\\d+\\.exe"
+      },
+      "install": "{file} /VERYSILENT /NORESTART",
+      "uninstall": "\"%ProgramFiles%\\WindowsAdminCenter\\unins000.exe\" /VERYSILENT /NORESTART",
+      "detect": null,
+      "note": "Version 2 is an Inno Setup exe, not the old MSI, so old msiexec lines and SME_PORT-style properties no longer apply. In the lab it took about 5 minutes as SYSTEM, registered as \"Windows Admin Center (v2)\" and listened on port 6600 (and 6601), not 443; open that port and browse to https://<server>:6600.",
+      "verified": {
+        "on": "2026-11-11",
+        "version": "2.7.6.22",
+        "uninstall": true
+      }
+    },
+    {
+      "name": "Azul Zulu JDK 21",
+      "match": {
+        "product": "^azul zulu",
+        "file": "zulu.*-ca-jdk21.*-win_x64\\.msi"
+      },
+      "install": "msiexec /i \"{file}\" /qn /norestart",
+      "uninstall": "msiexec /x \"{file}\" /qn /norestart",
+      "detect": null,
+      "note": "A plain MSI. It registers as \"Azul Zulu JDK <build> (<java version>), 64-bit\", so a detection rule on the name must not start at \"Zulu\".",
+      "verified": {
+        "on": "2026-11-11",
+        "version": "21.54.109 (21.0.13)",
+        "uninstall": true
+      }
+    },
+    {
+      "name": "Opera",
+      "match": {
+        "product": "^opera",
+        "file": "Opera_.*_Setup(_x64)?\\.exe"
+      },
+      "install": "{file} /silent /allusers=1 /launchbrowser=0",
+      "uninstall": "\"%ProgramFiles%\\Opera\\opera.exe\" /uninstall --runimmediately --deleteuserprofile=0",
+      "detect": null,
+      "note": "/allusers=1 is what makes it machine-wide (=0 is per-user). It registers as \"Opera Stable\" and starts its browser_assistant process at install. The uninstall removed the Add/Remove Programs entry but left the C:\\Program Files\\Opera folder in the lab.",
+      "verified": {
+        "on": "2026-11-11",
+        "version": "140.0.6074.17",
+        "uninstall": true
+      }
+    },
+    {
+      "name": "Mullvad VPN",
+      "match": {
+        "product": "^mullvad vpn",
+        "file": "MullvadVPN-.*_x64\\.exe"
+      },
+      "install": "{file} /S",
+      "uninstall": "\"%ProgramFiles%\\Mullvad VPN\\Uninstall Mullvad VPN.exe\" /allusers /S",
+      "detect": null,
+      "note": "NSIS (electron-builder), machine-wide. It installs and starts the MullvadVPN service (Automatic) at install; users sign in with their account number in the app.",
+      "verified": {
+        "on": "2026-11-11",
+        "version": "2026.5",
+        "uninstall": true
+      }
+    },
+    {
+      "name": "Cyberduck",
+      "match": {
+        "product": "^cyberduck",
+        "file": "Cyberduck-Installer-.*\\.msi"
+      },
+      "install": "msiexec /i \"{file}\" /qn /norestart",
+      "uninstall": "msiexec /x \"{file}\" /qn /norestart",
+      "detect": null,
+      "note": "Use the MSI (Cyberduck-Installer-*.msi) for a machine-wide deploy.",
+      "verified": {
+        "on": "2026-11-11",
+        "version": "9.6.0.46406",
+        "uninstall": true
+      }
+    },
+    {
+      "name": "Angry IP Scanner",
+      "match": {
+        "product": "^angry ip scanner",
+        "file": "ipscan-.*-setup\\.exe"
+      },
+      "install": "{file} /S",
+      "uninstall": "\"%ProgramFiles%\\Angry IP Scanner\\uninstall.exe\" /S",
+      "detect": null,
+      "note": "NSIS, machine-wide. The 3.10.0 installer is not code-signed; it matched the SHA-256 GitHub publishes for the release asset, which is worth checking before you deploy it.",
+      "verified": {
+        "on": "2026-11-11",
+        "version": "3.10.0",
         "uninstall": true
       }
     },
