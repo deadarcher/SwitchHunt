@@ -1,6 +1,6 @@
 {
   "_comment": "GENERATED from src/lib/catalog.ts by scripts/gen-catalog.ts - do not hand-edit. Regenerate: npm run gen:catalog",
-  "count": 173,
+  "count": 175,
   "entries": [
     {
       "name": "Citrix Workspace",
@@ -362,7 +362,7 @@
       "install": "{file} /S",
       "uninstall": "\"%ProgramFiles%\\Mozilla Firefox\\uninstall\\helper.exe\" /S",
       "detect": "C:\\Program Files\\Mozilla Firefox\\firefox.exe",
-      "note": "NSIS. Drop a policies.json / use the MSI for managed settings.",
+      "note": "NSIS. Drop a policies.json / use the MSI for managed settings. The ESR installer takes the same switches and the same uninstall (lab, 153.7.0esr as SYSTEM, 2026-11-11); it registers as \"Mozilla Firefox ESR\".",
       "verified": {
         "on": "2026-07-29",
         "version": "153.0.1",
@@ -2657,6 +2657,38 @@
       "verified": {
         "on": "2026-11-11",
         "version": "3.10.0",
+        "uninstall": true
+      }
+    },
+    {
+      "name": "Microsoft Remote Help",
+      "match": {
+        "product": "^remote help",
+        "file": "remotehelpinstaller"
+      },
+      "install": "{file} /quiet /norestart acceptTerms=1",
+      "uninstall": "{file} /uninstall /quiet /norestart",
+      "detect": null,
+      "note": "acceptTerms=1 is required for an unattended install; /quiet alone is not enough. A WiX bundle: it shows two \"Remote Help\" entries in Add/Remove Programs, and the bundle's /uninstall removed both. It still needs the Remote Help licence and Intune setup before anyone can connect.",
+      "verified": {
+        "on": "2026-11-11",
+        "version": "5.2.1040.0",
+        "uninstall": true
+      }
+    },
+    {
+      "name": "Intel Driver & Support Assistant",
+      "match": {
+        "product": "^intel.*driver.*support assistant",
+        "file": "Intel-Driver-and-Support-Assistant-Installer\\.exe"
+      },
+      "install": "{file} /quiet /norestart",
+      "uninstall": "{file} /uninstall /quiet /norestart",
+      "detect": null,
+      "note": "The download is a small online stub (about 9 MB) that fetches the rest at install time, so the machine needs internet access during the deploy. It installs DSAService and DSAUpdateService (both Automatic, running) and shows two entries in Add/Remove Programs; the bundle's /uninstall removed both.",
+      "verified": {
+        "on": "2026-11-11",
+        "version": "26.2.0.7",
         "uninstall": true
       }
     },
