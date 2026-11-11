@@ -1,6 +1,6 @@
 {
   "_comment": "GENERATED from src/lib/catalog.ts by scripts/gen-catalog.ts - do not hand-edit. Regenerate: npm run gen:catalog",
-  "count": 163,
+  "count": 167,
   "entries": [
     {
       "name": "Citrix Workspace",
@@ -2497,6 +2497,70 @@
       "verified": {
         "on": "2026-11-11",
         "version": "12.13.12.3",
+        "uninstall": true
+      }
+    },
+    {
+      "name": "Datadog Agent",
+      "match": {
+        "product": "^datadog agent",
+        "file": "ddagent-cli-.*\\.msi"
+      },
+      "install": "msiexec /i \"{file}\" /qn",
+      "uninstall": "msiexec /x \"{file}\" /qn /norestart",
+      "detect": null,
+      "note": "Add APIKEY (and SITE if you are not on datadoghq.com). Without APIKEY it still installs and the agent service runs, but with an empty api_key in C:\\ProgramData\\Datadog\\datadog.yaml, so it looks healthy and reports nothing (lab). With APIKEY and SITE on the command line both landed in datadog.yaml. About 3 minutes as SYSTEM.",
+      "verified": {
+        "on": "2026-11-11",
+        "version": "7.85.2",
+        "uninstall": true
+      }
+    },
+    {
+      "name": "Grafana Alloy",
+      "match": {
+        "product": "^(grafana )?alloy",
+        "file": "alloy-installer-windows-amd64\\.exe"
+      },
+      "install": "{file} /S",
+      "uninstall": "\"%ProgramFiles%\\GrafanaLabs\\Alloy\\uninstall.exe\" /S",
+      "detect": null,
+      "note": "NSIS. It registers as \"Alloy\" and starts the Alloy service right away with the default configuration; deploy your config.alloy with it (Grafana documents /CONFIG and /DISABLEREPORTING for the installer).",
+      "verified": {
+        "on": "2026-11-11",
+        "version": "1.21.2",
+        "uninstall": true
+      }
+    },
+    {
+      "name": "Azure Connected Machine Agent (Azure Arc)",
+      "match": {
+        "product": "^azure connected machine agent",
+        "file": "AzureConnectedMachineAgent\\.msi"
+      },
+      "install": "msiexec /i \"{file}\" /qn /norestart",
+      "uninstall": "msiexec /x \"{file}\" /qn /norestart",
+      "detect": null,
+      "note": "Installing is only step one: himds, GCArcService and ExtensionService were running afterwards, but the machine is not in Azure until \"azcmagent connect\" runs with your subscription, resource group, location and a service principal (the onboarding script from the Azure portal does both). Disconnect with \"azcmagent disconnect\" before uninstalling, or the Azure resource is left behind.",
+      "verified": {
+        "on": "2026-11-11",
+        "version": "1.70.03595.3521",
+        "uninstall": true
+      }
+    },
+    {
+      "name": "New Relic Infrastructure Agent",
+      "match": {
+        "product": "^new relic infrastructure agent",
+        "file": "newrelic-infra.*\\.msi"
+      },
+      "install": "msiexec /qn /i \"{file}\" GENERATE_CONFIG=true LICENSE_KEY=\"your-license-key\"",
+      "uninstall": "msiexec /x \"{file}\" /qn /norestart",
+      "detect": null,
+      "note": "GENERATE_CONFIG=true is REQUIRED alongside LICENSE_KEY, and the MSI does not declare it, so a scanner won't offer it. In the lab (2.0.2 as SYSTEM, with a dummy 40-character key in place of your-license-key): LICENSE_KEY alone installed the agent STOPPED, with newrelic-infra.yml still holding the template key \"<ENTER YOUR NEW RELIC KEY HERE>\"; with GENERATE_CONFIG=true the key landed in newrelic-infra.yml and the service was running.",
+      "verified": {
+        "on": "2026-11-11",
+        "version": "2.0.2",
         "uninstall": true
       }
     },
